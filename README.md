@@ -62,9 +62,45 @@ explainable, so it is not left to a language model. The model's job upstream is
 to *locate* values; this stage decides whether two located values mean the same
 thing.
 
-**4. Escalation** — when the system cannot decide, it says so and why, rather
-than guessing: `wrong_doc_type`, `missing_attachment`, `unreadable`,
+**4. Agent recovery** — an LLM gets one attempt at whatever the deterministic
+parsers left missing, before anyone is asked to look. It is never believed on
+its word; see below.
+
+**5. Escalation** — when the system still cannot decide, it says so and why,
+rather than guessing: `wrong_doc_type`, `missing_attachment`, `unreadable`,
 `missing_value`.
+
+### The cascade, and where the model sits in it
+
+```
+labelled parse  ->  block parse  ->  resolver agent  ->  escalate
+  deterministic     deterministic     grounded LLM       a person
+```
+
+Cheapest and most certain first. The model is reached only for fields two
+deterministic parsers could not find, which on this corpus is 3 fields across
+2 documents — so the agent is insurance against unseen layouts rather than the
+main engine, and it costs almost nothing to run.
+
+**The model can find a value. It cannot author one.** Every proposal must come
+back with a verbatim quote; the quote must actually appear in the document;
+the value must appear inside the quote; and typed fields must still parse as
+their type. A proposal failing any check is discarded and the field stays
+missing, so the email escalates exactly as if the agent had never run. Whatever
+survives goes through the same deterministic comparator as every other field.
+
+This is what makes an LLM safe here. A model that invents `TOTALLY MADE UP
+TRADING LLC` produces a plausible-looking consignee, and a plausible-looking
+consignee on a bill of lading is worse than no answer at all.
+
+The same agent decides the classifications the rules abstain on — 153 of 520
+emails, including the 91 draft-chasers discussed in
+[docs/assumptions.md](docs/assumptions.md), which it judges individually rather
+than by a blanket flag.
+
+Run it with `--agent bedrock` (Claude on Amazon Bedrock, so document text stays
+inside the tenant) or `--agent anthropic`. The default is `off`, which keeps
+the scored run fully deterministic and reproducible.
 
 Two outputs. `out/submission.json` is the narrow shape the scorer wants.
 `out/results.json` carries everything a human needs — evidence lines, shipment
@@ -103,19 +139,19 @@ Of the 126 document checks:
 
 | Outcome | Count | Share |
 |---|---:|---:|
-| OK — all seven fields agree | 57 | 45.2% |
-| MISMATCH — at least one defect | 44 | 34.9% |
-| NEEDS_REVIEW — escalated | 25 | 19.8% |
+| OK — all seven fields agree | 63 | 50.0% |
+| MISMATCH — at least one defect | 48 | 38.1% |
+| NEEDS_REVIEW — escalated | 15 | 11.9% |
 
-**101 of 126 decided without a human (80.2%).** Of those decided, 43.6%
+**111 of 126 decided without a human (88.1%).** Of those decided, 43.2%
 carried at least one defect.
 
-Escalations, by reason: `unreadable` 15 (PDF attachments, not yet supported),
+Escalations, by reason: `unreadable` 5 (PDFs with no extractable text),
 `wrong_doc_type` 5 (the decoys), `missing_value` 3 (blank or `N/A` in the
 source), `missing_attachment` 2.
 
-Defects found, by field: container count 17, port of discharge 14, gross
-weight 9, notify party 8, consignee 7, port of loading 7, shipper 7.
+Defects found, by field: container count 19, port of discharge 15, gross
+weight 12, notify party 8, consignee 7, port of loading 7, shipper 7.
 
 ## The workspace
 
@@ -148,10 +184,10 @@ that can fail during a demo.
 
 There is no ground truth in the bundle, so accuracy is established three ways.
 
-### 1. Test suite — 124 tests, all passing
+### 1. Test suite — 156 tests, all passing
 
 ```
-124 passed in 0.95s
+156 passed in 1.24s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -170,16 +206,16 @@ seven known defects with their exact field lists, three known-clean drafts, and
 eight known escalations. These are the guard against a normalization tweak
 quietly breaking a defect already being caught.
 
-### 2. Defect injection — 555 injected, 100% caught
+### 2. Defect injection — 602 injected, 100% caught
 
 `eval/mutation.py` takes every pair the pipeline calls clean, injects one known
 defect into the draft BL, and checks that exactly that field is reported.
 
 ```
-clean pairs available as mutation hosts: 57
-injected defects : 555
-caught           : 555  (100.0%)
-caught cleanly   : 555  (100.0% - no collateral fields)
+clean pairs available as mutation hosts: 63
+injected defects : 602
+caught           : 602  (100.0%)
+caught cleanly   : 602  (100.0% - no collateral fields)
 control failures : 0
 ```
 
@@ -193,9 +229,9 @@ field, and the unmutated control run stayed silent.
 
 `eval/audit.py` asks where the system could be wrong.
 
-**Normalization sensitivity.** Of 654 field agreements, 642 (98.2%) are
-byte-identical strings. Normalization decided only 12 — five thousands
-separators (`243588` vs `243,588`) and seven ports where one side omits the
+**Normalization sensitivity.** The overwhelming majority of field agreements
+are byte-identical strings; normalization decides a handful — thousands
+separators (`243588` vs `243,588`) and ports where one side omits the
 UN/LOCODE. Every one was inspected by hand. The comparator is doing very
 little quiet work, which is the point.
 
@@ -208,10 +244,29 @@ LLM stage should own. Rules handle 88.1% at high confidence.
 reviewed. All are legitimately outside the seven — freight terms, HS codes,
 vessel and voyage, booking references.
 
+### 4. The agent's guardrails are tested, the live call is not
+
+27 tests drive the resolver through a fake client: a grounded value is
+accepted, an invented company is rejected, a genuine quote carrying a smuggled
+value is rejected, an implausible weight is rejected, a field the parser
+already found is never overwritten, malformed and empty replies are treated as
+abstention, and a transport failure is recorded without breaking the run. Three
+cascade tests prove the placement: a recovered field can turn an escalation
+into a clean pass, can equally reveal a defect, and a hallucinating agent still
+escalates.
+
+**Not verified:** no live call has been made. There are no AWS credentials in
+this environment, so the Bedrock path is exercised only up to authentication —
+imports resolve and the client constructs, then the call fails and is recorded
+as a note. The prompt and the model's real behaviour are unmeasured. With the
+agent misconfigured the pipeline still produces a byte-identical valid
+submission, which is the property that matters most for demo day.
+
 ### Known limits
 
-PDFs are not read, so 15 comparison emails escalate as `unreadable`. That is a
-deliberate choice: a declared-unreadable document is a correct answer and a
+Five PDFs have no extractable text at all — a corrupt cluster that reports
+`EOF marker not found` — and escalate as `unreadable`. OCR is the only route
+to those, and a declared-unreadable document is a correct answer where a
 hallucinated one is not. The largest open question is documented in
 [docs/assumptions.md](docs/assumptions.md) — 91 emails chasing a draft BL are
 currently GENERAL, and `--chase-as-comparison` flips them.
@@ -223,17 +278,17 @@ fields. Assuming five minutes per check — an estimate to confirm with the
 operations team, not a measured figure — the 126 checks in this batch are about
 **10.5 hours** of desk time.
 
-The system decides 101 of them outright and escalates 25 with the reason
+The system decides 111 of them outright and escalates 15 with the reason
 already stated. At roughly two minutes to action a pre-diagnosed escalation,
-that is about **50 minutes of human time**, against 10.5 hours. The saving is
+that is about **30 minutes of human time**, against 10.5 hours. The saving is
 in the same order as the work itself, and it scales with volume rather than
 headcount.
 
-**Where the money actually is.** Not the minutes — the 44 defective drafts
+**Where the money actually is.** Not the minutes — the 48 defective drafts
 caught before release. A wrong consignee or port on a released BL means an
 amendment fee, a delayed release, and in the worst case cargo moving against a
 document naming the wrong party. Catching those is worth more than the clerical
-time, and the system caught them at a rate of 43.6% of decided checks.
+time, and the system caught them at a rate of 43.2% of decided checks.
 
 **Why an ops team would actually use it.** The unit on screen is a shipment,
 not an email. The vocabulary is "needs correction", not `MISMATCH`. Every flag
@@ -241,7 +296,7 @@ shows both values and the labels they came from, so the correction email
 writes itself and the clerk stays accountable for sending it. Nothing is
 auto-sent.
 
-**Adoption risk, handled.** The system never guesses. 19.8% of checks come back
+**Adoption risk, handled.** The system never guesses. 11.9% of checks come back
 as "a person needs to look at this, and here is exactly why". A tool that
 silently guessed on those would be abandoned the first time it was wrong on
 something expensive.
@@ -348,12 +403,13 @@ src/sdoc/
   compare.py      verdicts and escalation precedence
   classify.py     stage-1 triage
   shipment.py     OC / booking reference threading
+  agents.py       the LLM recovery stage and its grounding checks
   pipeline.py     orchestration, submission and results output
   validate.py     submission shape and consistency checks
 ui/
   index.html      the workspace, with a data placeholder
   build.py        inlines results into out/ui/index.html
-tests/            124 tests
+tests/            156 tests
 eval/             mutation.py, audit.py
 docs/             assumptions.md
 ```
