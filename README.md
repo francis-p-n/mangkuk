@@ -182,12 +182,12 @@ that can fail during a demo.
 
 ## Testing and validation
 
-There is no ground truth in the bundle, so accuracy is established three ways.
+There is no ground truth in the bundle, so accuracy is established five ways.
 
-### 1. Test suite — 156 tests, all passing
+### 1. Test suite — 189 tests, all passing
 
 ```
-156 passed in 1.24s
+189 passed in 1.27s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -244,7 +244,44 @@ LLM stage should own. Rules handle 88.1% at high confidence.
 reviewed. All are legitimately outside the seven — freight terms, HS codes,
 vessel and voyage, booking references.
 
-### 4. The agent's guardrails are tested, the live call is not
+### 4. Clerk's-eye cases — 31 real-world variations, 0 missed
+
+The bundle is one generator's idea of how documents vary. A real desk sees
+more. `eval/desk_cases.py` encodes what an experienced clerk would say about
+31 variations and holds the comparator to it, weighting the two directions of
+error very differently: a false alarm costs minutes, a miss puts a wrong value
+on a bill of lading.
+
+The first run passed 19 of 29 with **0 misses and 10 false alarms** — every
+one a case a clerk would wave through. Fixing them changed nothing about the
+bundle's results (still 63/48/15), which is the point: these were real-world
+robustness gaps, not bundle bugs.
+
+What it found, and what now works:
+
+- **European decimal commas.** `21.577,00 KG` and `21,577 KG` are the same
+  weight. Roxcel is in Vienna.
+- **Tonnes.** `132 MT` equals `132,000 KG`. Previously flagged. Meanwhile
+  `21,577 KG` against `21,577 MT` is a 1000x error and must be caught — it is.
+- **Genuinely ambiguous numbers escalate.** `21.577` is 21577 to a German
+  forwarder and 21.577 to everyone else. Where two readings disagree on the
+  verdict, a person decides rather than the parser guessing.
+- **"ton" is refused.** Short, long and metric tons differ by up to 12%, so
+  the field becomes undecidable rather than converted.
+- **Box-type synonyms.** `GP`/`DV`/`DC` all mean a standard dry box; `HC`,
+  `HQ` and `HIGH CUBE` all mean high cube. `FCL` is deliberately *not*
+  aliased — it describes the load, not the box.
+- **Punctuated legal forms.** `Roxcel Trading G.m.b.H.` is `ROXCEL TRADING
+  GMBH`; `L.L.C.` is `LLC`; `BALL & DOGGETT` is `BALL AND DOGGETT`.
+- **Port aliases.** A terminal named on one document only (`PORT KLANG
+  (WESTPORT)`), an official name beside a common one (`JAWAHARLAL NEHRU
+  (NHAVA SHEVA)`), and spelling drift (`KLANG`/`KELANG`) all read through.
+  Country and UN/LOCODE stay exact, so `MOMBASA, KENYA (KEMBA)` against
+  `TUTICORIN, INDIA (KEMBA)` still conflicts.
+
+The cases run as part of the suite, so none of this can silently regress.
+
+### 5. The agent's guardrails are tested, the live call is not
 
 27 tests drive the resolver through a fake client: a grounded value is
 accepted, an invented company is rejected, a genuine quote carrying a smuggled
@@ -301,12 +338,12 @@ as "a person needs to look at this, and here is exactly why". A tool that
 silently guessed on those would be abandoned the first time it was wrong on
 something expensive.
 
-**Deployment shape.** Graph API webhook into API Gateway and Lambda, S3 for
-attachments, SQS between stages so one corrupt document fails one message
-rather than a batch, Bedrock for the model calls so data stays inside the
-tenant, DynamoDB keyed on OC number, static front end on S3 and CloudFront.
-The stage boundaries are already JSON contracts, so each stage lifts into its
-own worker unchanged.
+**Deployment shape.** Graph change notifications into API Gateway and Lambda,
+S3 for raw documents, Step Functions per email so a throttle retries one stage
+rather than the batch, Bedrock over a VPC endpoint so document text never
+leaves the tenant, DynamoDB keyed on OC number, static front end on S3 and
+CloudFront, corrections written back as Outlook drafts rather than sent. Full
+diagram, security posture and costs in [docs/architecture.md](docs/architecture.md).
 
 **What it is not.** Not a BL generator — the carrier issues the BL. Not an
 auto-sender. Not a replacement for the documentation team; it is an exception
@@ -409,9 +446,9 @@ src/sdoc/
 ui/
   index.html      the workspace, with a data placeholder
   build.py        inlines results into out/ui/index.html
-tests/            156 tests
-eval/             mutation.py, audit.py
-docs/             assumptions.md
+tests/            189 tests
+eval/             mutation.py, audit.py, desk_cases.py
+docs/             assumptions.md, architecture.md
 ```
 
 Python 3.12. Dependencies: `openpyxl` and `python-docx` for spreadsheet and
