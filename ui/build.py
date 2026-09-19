@@ -12,6 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from sdoc.labels import as_payload  # noqa: E402
+
 KEEP = (
     "email_id", "subject", "sender", "status", "review_reason", "has_defect",
     "defect_fields", "note", "oc_number", "booking_ref", "shipment", "comparisons",
@@ -48,6 +52,7 @@ def main() -> int:
             "review": sum(r["status"] == "NEEDS_REVIEW" for r in comparisons),
             "ok": sum(r["status"] == "OK" for r in comparisons),
         },
+        "labels": as_payload(),
         "shipments": [slim(r) for r in comparisons],
     }
 

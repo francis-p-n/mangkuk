@@ -91,6 +91,10 @@ h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 0; le
 .bar .fix { background: var(--fix); } .bar .look { background: var(--look); } .bar .fine { background: var(--fine); }
 
 .tools { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 26px 0 16px; }
+.tools.narrow { margin: 0 0 18px; gap: 12px; align-items: flex-end; }
+.picker { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--ink-faint); }
+.picker select { min-width: 190px; max-width: 260px; }
+#clearf { align-self: flex-end; }
 input[type=search], select {
   font: inherit; font-size: 15px; padding: 9px 13px; color: var(--ink);
   background: var(--card); border: 1px solid var(--rule-firm); border-radius: var(--r);
@@ -234,12 +238,23 @@ details[open] summary::before { transform: rotate(90deg); }
   <div class="bar" id="bar"></div>
 
   <div class="tools">
-    <input type="search" id="q" placeholder="Search by consignee, OC number, port or vessel" aria-label="Search shipments">
+    <input type="search" id="q" placeholder="Search customer, country, OC number, port, vessel or cargo" aria-label="Search shipments">
     <button class="pill" data-filter="all" aria-pressed="true">Everything</button>
     <button class="pill" data-filter="MISMATCH" aria-pressed="false"><i class="dot fix"></i>Needs fixing</button>
     <button class="pill" data-filter="NEEDS_REVIEW" aria-pressed="false"><i class="dot look"></i>Needs you to look</button>
     <button class="pill" data-filter="OK" aria-pressed="false"><i class="dot fine"></i>Fine</button>
-    <select id="consignee" aria-label="Filter by customer"></select>
+  </div>
+
+  <div class="tools narrow" id="pickers">
+    <label class="picker">Customer
+      <select id="f-consignee" data-key="consignee"></select></label>
+    <label class="picker">Their country
+      <select id="f-country" data-key="consignee_country"></select></label>
+    <label class="picker">Shipping from
+      <select id="f-loading" data-key="loading_port"></select></label>
+    <label class="picker">Going to
+      <select id="f-discharge" data-key="discharge_port"></select></label>
+    <button class="btn plain" id="clearf" hidden>Clear filters</button>
   </div>
 
   <div class="cols">
@@ -255,24 +270,36 @@ details[open] summary::before { transform: rotate(90deg); }
 
 <script id="sdoc-data" type="application/json">__SDOC_DATA__</script>
 <script>
-const NAMES = {
+let DATA = null;
+try { DATA = JSON.parse(document.getElementById("sdoc-data").textContent); } catch (e) { DATA = null; }
+
+// One vocabulary for the whole system, written once in src/sdoc/labels.py and
+// travelling with the data. The fallbacks only matter if the page is opened
+// without a build.
+const V = (DATA && DATA.labels) || {};
+const NAMES = V.field || {
   shipper: "Shipper", consignee: "Consignee", notify_party: "Notify party",
   port_of_loading: "Loading port", port_of_discharge: "Discharge port",
   container_count: "Containers", gross_weight_kg: "Gross weight"
 };
-const WHY = {
+const WHY = V.reason || {
   wrong_doc_type: "The carrier sent the wrong kind of document",
   missing_attachment: "One of the two documents is missing",
   unreadable: "The attachment could not be opened",
   missing_value: "A detail is blank on the instruction"
 };
-const TAG = { MISMATCH: "Needs fixing", NEEDS_REVIEW: "Needs you to look", OK: "Fine" };
-const TONE = { MISMATCH: "fix", NEEDS_REVIEW: "look", OK: "fine" };
+const TAG = V.status || { MISMATCH: "Needs fixing", NEEDS_REVIEW: "Needs you to look", OK: "Fine" };
+const TONE = V.tone || { MISMATCH: "fix", NEEDS_REVIEW: "look", OK: "fine" };
+
+// Which shipment fact each picker filters on, and what it is called on screen.
+const PICKERS = [
+  { key: "consignee", all: "Every customer" },
+  { key: "consignee_country", all: "Everywhere" },
+  { key: "loading_port", all: "Every export port" },
+  { key: "discharge_port", all: "Every destination" },
+];
 const BOX = { HC: "ft high-cube", GP: "ft standard", DV: "ft standard", DC: "ft standard",
               RF: "ft reefer", FCL: "ft", OT: "ft open-top", FR: "ft flat-rack" };
-
-let DATA = null;
-try { DATA = JSON.parse(document.getElementById("sdoc-data").textContent); } catch (e) { DATA = null; }
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -303,7 +330,7 @@ function plainBoxes(spec) {
 }
 const plainWeight = w => (w || "").replace(/\s*KGS?\b/i, " kg").trim();
 
-let state = { filter: "all", consignee: "", q: "", selected: null };
+let state = { filter: "all", q: "", selected: null, picks: {} };
 
 function boot() {
   if (!DATA || !DATA.shipments) {
@@ -323,7 +350,7 @@ function boot() {
     `<i class="fix" style="width:${pct(t.mismatch)}"></i><i class="look" style="width:${pct(t.review)}"></i><i class="fine" style="width:${pct(t.ok)}"></i>`;
   document.getElementById("foot").textContent =
     "Nothing here is sent automatically. You send every email yourself.";
-  fillCustomers(); wire(); wireIntro(); render();
+  wire(); wireIntro(); render();
 }
 
 // Open on a first visit, remembered afterwards. Browser storage can be blocked
@@ -349,15 +376,31 @@ function wireIntro() {
   });
 }
 
-function fillCustomers() {
-  const counts = new Map();
-  for (const s of DATA.shipments) {
-    const c = s.shipment.consignee;
-    if (c) counts.set(c, (counts.get(c) || 0) + 1);
+// Each picker lists only what is still reachable given the other choices, so
+// no combination ever comes back empty.
+function refreshPickers() {
+  let anyPicked = false;
+  for (const { key, all } of PICKERS) {
+    const others = matching({ ignore: key });
+    const counts = new Map();
+    for (const s of others) {
+      const v = s.shipment[key];
+      if (v) counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    const chosen = state.picks[key] || "";
+    if (chosen) anyPicked = true;
+    // Keep a chosen value listed even if the other filters would hide it.
+    if (chosen && !counts.has(chosen)) counts.set(chosen, 0);
+
+    const label = v => key === "consignee" ? title(v) : v;
+    const opts = [...counts.entries()].sort((a, b) => label(a[0]).localeCompare(label(b[0])))
+      .map(([v, n]) => `<option value="${esc(v)}"${v === chosen ? " selected" : ""}>${
+        esc(label(v))}${n ? ` (${n})` : ""}</option>`).join("");
+    const el = document.querySelector(`[data-key="${key}"]`);
+    el.innerHTML = `<option value="">${all}</option>${opts}`;
+    el.value = chosen;
   }
-  document.getElementById("consignee").innerHTML = `<option value="">Every customer</option>` +
-    [...counts.entries()].sort((a, b) => b[1] - a[1])
-      .map(([c, n]) => `<option value="${esc(c)}">${esc(title(c))} (${n})</option>`).join("");
+  document.getElementById("clearf").hidden = !anyPicked && !state.q && state.filter === "all";
 }
 
 function wire() {
@@ -371,7 +414,18 @@ function wire() {
       render();
     });
   });
-  document.getElementById("consignee").addEventListener("change", e => { state.consignee = e.target.value; render(); });
+  for (const { key } of PICKERS) {
+    document.querySelector(`[data-key="${key}"]`).addEventListener("change", e => {
+      state.picks[key] = e.target.value; render();
+    });
+  }
+  document.getElementById("clearf").addEventListener("click", () => {
+    state.picks = {}; state.q = ""; state.filter = "all";
+    document.getElementById("q").value = "";
+    document.querySelectorAll(".pill").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.filter === "all")));
+    render();
+  });
   document.getElementById("q").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); render(); });
   document.getElementById("list").addEventListener("keydown", e => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
@@ -383,18 +437,26 @@ function wire() {
   });
 }
 
-function visible() {
+function matching({ ignore } = {}) {
   return DATA.shipments.filter(s => {
     if (state.filter !== "all" && s.status !== state.filter) return false;
-    if (state.consignee && s.shipment.consignee !== state.consignee) return false;
+    for (const { key } of PICKERS) {
+      if (key === ignore) continue;
+      const want = state.picks[key];
+      if (want && s.shipment[key] !== want) return false;
+    }
     if (state.q) {
-      const hay = [s.shipment.consignee, s.oc_number, s.booking_ref, s.subject,
-        s.shipment.port_of_discharge, s.shipment.port_of_loading, s.shipment.vessel].join(" ").toLowerCase();
+      const hay = [s.shipment.consignee, s.shipment.consignee_country,
+        s.shipment.consignee_address, s.oc_number, s.booking_ref, s.subject,
+        s.shipment.discharge_port, s.shipment.loading_port,
+        s.shipment.vessel, s.shipment.commodity].join(" ").toLowerCase();
       if (!hay.includes(state.q)) return false;
     }
     return true;
   });
 }
+
+const visible = () => matching();
 
 function issueLine(s) {
   if (s.status === "MISMATCH") {
@@ -409,6 +471,7 @@ function issueLine(s) {
 
 function render() {
   const rows = visible();
+  refreshPickers();
   document.getElementById("listtop").textContent = rows.length === DATA.shipments.length
     ? `${rows.length} shipments` : `${rows.length} of ${DATA.shipments.length} shipments`;
   const list = document.getElementById("list");

@@ -42,7 +42,7 @@ other. A "bill of lading" that is actually a packing list.
 
 **It does not make things up.** When a document is missing, unreadable, or the
 wrong document entirely, it stops and says exactly why, rather than guessing.
-Roughly one shipment in nine comes back as "a person needs to look at this,
+Roughly one shipment in six comes back as "a person needs to look at this,
 and here is the reason".
 
 **It shows you the proof.** Every mismatch displays the wording from both
@@ -55,10 +55,10 @@ change what you like, and send it from your own mailbox.
 
 ### What it found in the sample inbox
 
-Of 126 document checks: **48 drafts had a real error** that would have gone to
-the carrier, **63 were correct**, and **15 needed a human**. That is 88 in
+Of 129 document checks: **46 drafts had a real error** that would have gone to
+the carrier, **63 were correct**, and **20 needed a human**. That is 85 in
 every 100 decided without anyone reading a document — and, more to the point,
-48 mistakes caught before they became someone's problem.
+46 mistakes caught before they became someone's problem.
 
 ### How much of this is guesswork
 
@@ -196,37 +196,46 @@ nothing downstream would change.
 
 | Category | Count |
 |---|---:|
-| GENERAL | 153 |
+| GENERAL | 150 |
 | SI_REQUEST | 141 |
-| BL_COMPARISON | 126 |
+| BL_COMPARISON | 129 |
 | INVOICE_QUERY | 60 |
 | SPAM | 40 |
 
-Of the 126 document checks:
+Of the 129 document checks:
 
 | Outcome | Count | Share |
 |---|---:|---:|
-| OK — all seven fields agree | 63 | 50.0% |
-| MISMATCH — at least one defect | 48 | 38.1% |
-| NEEDS_REVIEW — escalated | 15 | 11.9% |
+| OK — all seven fields agree | 63 | 48.8% |
+| MISMATCH — at least one defect | 46 | 35.7% |
+| NEEDS_REVIEW — escalated | 20 | 15.5% |
 
-**111 of 126 decided without a human (88.1%).** Of those decided, 43.2%
+**109 of 129 decided without a human (84.5%).** Of those decided, 42.2%
 carried at least one defect.
 
-Escalations, by reason: `unreadable` 5 (PDFs with no extractable text),
-`wrong_doc_type` 5 (the decoys), `missing_value` 3 (blank or `N/A` in the
-source), `missing_attachment` 2.
+Escalations, by reason: exactly **five each** of `wrong_doc_type`,
+`missing_attachment`, `unreadable` and `missing_value`.
 
-Defects found, by field: container count 19, port of discharge 15, gross
-weight 12, notify party 8, consignee 7, port of loading 7, shipper 7.
+That symmetry is not a coincidence and is the strongest accuracy signal
+available without ground truth. Emails 501-520 are a constructed edge-case
+block — five per reason — and the pipeline now resolves all twenty the way
+they were built. Two of them were being reported as defects until this was
+spotted; see *Unfilled forms are not values* below.
+
+Defects found, by field: container count 19, port of discharge 13, gross
+weight 12, notify party 8, consignee 7, shipper 7, port of loading 6.
 
 ## The workspace
 
 The unit on screen is a shipment, not an email, and the language is the desk's
 rather than the pipeline's — "needs correction", "needs a person", "clear".
 
-Three piles, so a clerk's job becomes working the middle one. Filter by status
-or consignee, search across consignee, OC number, port and vessel. Selecting a
+Three piles, so a clerk's job becomes working the middle one. Four pickers
+narrow the list the way the desk actually thinks — **customer**, **their
+country**, **shipping from** and **going to** — and they cascade: choosing
+Australia leaves only the customers and destinations that still have
+shipments, so no combination ever comes back empty. Free-text search covers
+customer, country, address, OC number, port, vessel and cargo. Selecting a
 shipment shows its route, cargo, product and carrier, then the seven fields as
 the shipping instruction states them beside the draft, with conflicts
 highlighted and the source label under every value — so it is visible that the
@@ -249,12 +258,12 @@ that can fail during a demo.
 
 ## Testing and validation
 
-There is no ground truth in the bundle, so accuracy is established five ways.
+There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 189 tests, all passing
+### 1. Test suite — 237 tests, all passing
 
 ```
-189 passed in 1.27s
+237 passed in 1.35s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -311,7 +320,40 @@ LLM stage should own. Rules handle 88.1% at high confidence.
 reviewed. All are legitimately outside the seven — freight terms, HS codes,
 vessel and voyage, booking references.
 
-### 4. Clerk's-eye cases — 31 real-world variations, 0 missed
+### 4. The constructed edge-case block resolves 5/5/5/5
+
+Emails 501-520 are not ordinary traffic: they are a built set of escalation
+cases, five for each reason. Landing exactly five `wrong_doc_type`, five
+`missing_attachment`, five `unreadable` and five `missing_value` is the
+closest thing to a ground-truth check the bundle allows, and it is pinned as a
+test.
+
+Getting there exposed two real defects.
+
+**Unfilled forms are not values.** Two instructions arrived with the blanks
+still in them — `Port of Loading (POL): ____MT` and `PORT OF DISCHARGE: TBA`,
+sitting directly above `NET WEIGHT: _______ MTS`. The comparator read `____MT`
+as a port and reported it as a discrepancy against the carrier's `SINGAPORE
+(SGSIN)`. That is a false alarm of the worst kind: it would have sent a clerk
+to argue with a carrier about a detail their own side had never filled in.
+Placeholder tokens — runs of underscores or question marks, `TBA`, `TBC`,
+`N/A`, `NIL`, `PENDING` — now count as absent, so the shipment escalates as
+`missing_value` instead.
+
+**Three explicit comparison requests were being filed as general mail.** They
+read *"Please compare the SI and draft BL ... (attachments appear to have been
+dropped)"* — a comparison asked for outright, with the files lost in transit.
+The classifier had no phrase for that wording, so they never reached the
+checking stage at all. They are now `BL_COMPARISON` with
+`missing_attachment`, which is what the block was built to test.
+
+Worth noting what this *did not* change: those three are a distinct template
+from the 91 draft-chasers in [docs/assumptions.md](docs/assumptions.md). The
+organizers built exactly five `missing_attachment` cases, not ninety-six,
+which makes the case for leaving the chasers as general mail stronger than it
+was before.
+
+### 5. Clerk's-eye cases — 31 real-world variations, 0 missed
 
 The bundle is one generator's idea of how documents vary. A real desk sees
 more. `eval/desk_cases.py` encodes what an experienced clerk would say about
@@ -348,7 +390,7 @@ What it found, and what now works:
 
 The cases run as part of the suite, so none of this can silently regress.
 
-### 5. The agent's guardrails are tested, the live call is not
+### 6. The agent's guardrails are tested, the live call is not
 
 27 tests drive the resolver through a fake client: a grounded value is
 accepted, an invented company is rejected, a genuine quote carrying a smuggled
@@ -508,12 +550,14 @@ src/sdoc/
   classify.py     stage-1 triage
   shipment.py     OC / booking reference threading
   agents.py       the LLM recovery stage and its grounding checks
+  places.py       one settled spelling per port, countries from addresses
+  labels.py       the shared vocabulary for categories, statuses and fields
   pipeline.py     orchestration, submission and results output
   validate.py     submission shape and consistency checks
 ui/
   index.html      the workspace, with a data placeholder
   build.py        inlines results into out/ui/index.html
-tests/            189 tests
+tests/            237 tests
 eval/             mutation.py, audit.py, desk_cases.py
 docs/             assumptions.md, architecture.md
 ```
