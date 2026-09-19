@@ -10,7 +10,7 @@ import json
 from dataclasses import asdict, dataclass, field as dc_field
 from pathlib import Path
 
-from .classify import classify
+from .classify import Classification, classify
 from .compare import Verdict, compare_documents
 from .documents import Document, extract
 from .fields import FIELDS, extract_context, extract_fields
@@ -75,10 +75,25 @@ def _shipment_facts(si: Document | None, bl: Document | None) -> dict:
     return {}
 
 
-def process_email(source: MailSource, email: Email, chase_as_comparison: bool = False) -> EmailResult:
+CONFIDENCE_FLOOR = 0.7
+
+
+def process_email(
+    source: MailSource,
+    email: Email,
+    chase_as_comparison: bool = False,
+    resolver=None,
+    triage=None,
+) -> EmailResult:
     cls = classify(
         email.subject, email.body, email.domain, email.attachments, chase_as_comparison
     )
+
+    # The rules abstained. Hand it to the agent rather than defaulting.
+    if triage is not None and cls.confidence < CONFIDENCE_FLOOR:
+        decided = triage.classify(email.subject, email.body)
+        if decided:
+            cls = Classification(decided, f"agent_after_{cls.rule}", 0.75)
     refs: Refs = find_refs(email.subject, email.body)
     result = EmailResult(
         email_id=email.email_id,
@@ -101,7 +116,7 @@ def process_email(source: MailSource, email: Email, chase_as_comparison: bool = 
         else:
             bl = doc
 
-    verdict: Verdict = compare_documents(si, bl)
+    verdict: Verdict = compare_documents(si, bl, resolver)
     result.status = verdict.status
     result.review_reason = verdict.review_reason
     result.has_defect = verdict.has_defect
@@ -120,8 +135,16 @@ def process_email(source: MailSource, email: Email, chase_as_comparison: bool = 
     return result
 
 
-def run(source: MailSource, chase_as_comparison: bool = False) -> list[EmailResult]:
-    return [process_email(source, e, chase_as_comparison) for e in source.emails()]
+def run(
+    source: MailSource,
+    chase_as_comparison: bool = False,
+    resolver=None,
+    triage=None,
+) -> list[EmailResult]:
+    return [
+        process_email(source, e, chase_as_comparison, resolver, triage)
+        for e in source.emails()
+    ]
 
 
 def write_outputs(results: list[EmailResult], out_dir: str | Path) -> tuple[Path, Path]:

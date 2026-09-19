@@ -14,6 +14,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from sdoc.agents import (                      # noqa: E402
+    AgentStats, AgentUnavailable, FieldResolver, TriageAgent, make_client,
+)
 from sdoc.mailsource import open_source          # noqa: E402
 from sdoc.pipeline import run, write_outputs      # noqa: E402
 from sdoc.validate import validate                # noqa: E402
@@ -29,9 +32,26 @@ def main() -> int:
         help="treat 'please send the draft BL for checking' emails as comparison "
              "requests with a missing attachment (see docs/assumptions.md)",
     )
+    ap.add_argument(
+        "--agent", choices=("off", "bedrock", "anthropic"), default="off",
+        help="run the LLM recovery stage before escalating (default: off)",
+    )
     args = ap.parse_args()
 
-    results = run(open_source(args.source), args.chase_as_comparison)
+    agent_stats = AgentStats()
+    resolver = triage = None
+    if args.agent != "off":
+        try:
+            client = make_client(args.agent)
+        except AgentUnavailable as exc:
+            print(f"cannot start the agent stage: {exc}")
+            print("the deterministic pipeline still runs with --agent off")
+            return 2
+        resolver = FieldResolver(client, agent_stats)
+        triage = TriageAgent(client, agent_stats)
+        print(f"agent stage: {args.agent}\n")
+
+    results = run(open_source(args.source), args.chase_as_comparison, resolver, triage)
     sub_path, res_path = write_outputs(results, args.out)
 
     cats = collections.Counter(r.category for r in results)
@@ -55,6 +75,19 @@ def main() -> int:
         print("\ndefect fields")
         for f, n in defects.most_common():
             print(f"  {n:4}  {f}")
+
+    if args.agent != "off":
+        print("\nagent recovery")
+        print(f"  {agent_stats.resolver_calls:4}  documents sent to the resolver")
+        print(f"  {agent_stats.fields_requested:4}  fields it was asked to find")
+        print(f"  {agent_stats.fields_returned:4}  values it proposed")
+        print(f"  {agent_stats.fields_accepted:4}  accepted (grounded in the document)")
+        print(f"  {agent_stats.rejected_ungrounded:4}  rejected - quote not in the document")
+        print(f"  {agent_stats.rejected_implausible:4}  rejected - implausible for the field")
+        print(f"  {agent_stats.triage_calls:4}  classifications requested"
+              f" / {agent_stats.triage_accepted} accepted")
+        for note in agent_stats.notes[:5]:
+            print(f"  note: {note}")
 
     problems = validate(json.loads(sub_path.read_text(encoding="utf-8")), args.sample)
     print()

@@ -48,7 +48,14 @@ def _blocked(si: Document | None, bl: Document | None) -> str | None:
     return None
 
 
-def compare_documents(si: Document | None, bl: Document | None) -> Verdict:
+def compare_documents(si: Document | None, bl: Document | None, resolver=None) -> Verdict:
+    """Compare two documents.
+
+    `resolver`, when supplied, gets one chance to find fields the deterministic
+    parsers missed — before anything is escalated. Whatever it finds is treated
+    exactly like a parsed field from here on: it goes through the same
+    normalization and the same comparator.
+    """
     blocker = _blocked(si, bl)
     if blocker:
         detail = {
@@ -61,7 +68,15 @@ def compare_documents(si: Document | None, bl: Document | None) -> Verdict:
             detail = f"{bad.role} attachment is a {bad.doc_type.value.lower().replace('_', ' ')}"
         return Verdict(status="NEEDS_REVIEW", review_reason=blocker, note=detail)
 
-    return compare_fieldsets(extract_fields(si.text), extract_fields(bl.text))
+    si_fields, bl_fields = extract_fields(si.text), extract_fields(bl.text)
+
+    if resolver is not None:
+        if si_fields.missing:
+            resolver.resolve(si.text, si_fields, "shipping instruction")
+        if bl_fields.missing:
+            resolver.resolve(bl.text, bl_fields, "draft bill of lading")
+
+    return compare_fieldsets(si_fields, bl_fields)
 
 
 def compare_fieldsets(si_fields: FieldSet, bl_fields: FieldSet) -> Verdict:
