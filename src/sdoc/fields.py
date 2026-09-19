@@ -88,6 +88,35 @@ def _is_continuation(line: str) -> bool:
     return bool(line) and line[0] in " \t" and ":" not in line.split("  ")[-1][:40]
 
 
+# An unfilled form field is not a value. Templates arrive with the blanks still
+# in them - "Port of Loading (POL): ____MT" alongside "NET WEIGHT: _______ MTS" -
+# and "TBA" means the desk has not decided yet. Treating either as a stated
+# value turns an unfinished instruction into a false discrepancy report.
+_BLANK_RUN = re.compile(r"^[_\-.?*x\s]*[_\-?*]{2,}[_\-.?*\s]*[A-Za-z]{0,4}\.?$", re.I)
+_PLACEHOLDER_WORDS = {
+    "tba", "tbc", "tbd", "t b a", "to be advised", "to be confirmed",
+    "to be nominated", "n/a", "na", "n a", "nil", "none", "null", "pending",
+    "unknown", "xxx", "xx", "same as above", "as above",
+}
+
+
+def is_placeholder(value: str) -> bool:
+    """True when a field is present on the form but has not been filled in."""
+    text = value.strip()
+    if not text:
+        return True
+    if _BLANK_RUN.match(text):
+        return True
+    squashed = _WS.sub(" ", text.lower().strip(" .:-")).strip()
+    if squashed in _PLACEHOLDER_WORDS:
+        return True
+    # "T.B.A." and "N/A" are the same tokens with punctuation sprinkled in.
+    compact = re.sub(r"[^a-z]", "", squashed)
+    return compact in {"tba", "tbc", "tbd", "na", "nil", "none", "null",
+                       "pending", "unknown", "xxx", "xx", "tobeadvised",
+                       "tobeconfirmed", "tobenominated"}
+
+
 # A quantity looks like a quantity: digits, separators, then at most a unit.
 # Shape is checked as well as parseability, because a parser hunting for the
 # first number in a sentence will happily find one in "the vessel is SOLID 16".
@@ -158,7 +187,7 @@ def _pass_labelled(text: str) -> FieldSet:
         label, _, value = raw.partition(":")
         name = label_to_field(label)
         value = value.strip()
-        if not name or not value:
+        if not name or is_placeholder(value):
             last_field = None
             continue
 
@@ -200,7 +229,9 @@ def _pass_block(text: str, fs: FieldSet) -> None:
 
         value = lines[j].strip()
         # The next line being another label means this field has no value here.
-        if ":" in value or label_to_field(value) or not plausible(name, value):
+        if ":" in value or label_to_field(value) or is_placeholder(value):
+            continue
+        if not plausible(name, value):
             continue
 
         detail_parts: list[str] = []

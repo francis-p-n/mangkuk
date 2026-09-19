@@ -27,6 +27,12 @@ COMPARISON_PHRASES = (
     "check the draft bl against the si",
     "verify the bl matches the si",
     "bl matches the si",
+    # Asks for the comparison outright. The attachments may have gone astray in
+    # transit, which is a comparison that cannot proceed - not a different kind
+    # of email.
+    "compare the si and draft bl",
+    "compare the si and the draft bl",
+    "compare the shipping instruction and the draft bill of lading",
 )
 # Chasing a draft that has not arrived yet. Nothing to compare, so this is not
 # a comparison task — see docs/assumptions.md.

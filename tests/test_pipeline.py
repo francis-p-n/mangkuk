@@ -97,12 +97,15 @@ class TestPinnedCases:
     @pytest.mark.parametrize("eid,reason", [
         ("email_501", "wrong_doc_type"),
         ("email_502", "wrong_doc_type"),
+        ("email_506", "missing_attachment"),   # asks for the comparison, no files
         ("email_507", "missing_attachment"),
         ("email_509", "missing_attachment"),
+        ("email_513", "unreadable"),           # PDF with no extractable text
         ("email_516", "missing_value"),
+        ("email_517", "missing_value"),        # ports read "____MT" and "TBA"
+        ("email_518", "missing_value"),        # weight reads "____MT"
         ("email_519", "missing_value"),
         ("email_520", "missing_value"),
-        ("email_513", "unreadable"),   # PDF with no extractable text
     ])
     def test_known_escalations(self, results, eid, reason):
         r = results[eid]
@@ -116,3 +119,34 @@ class TestPinnedCases:
     def test_shipment_reference_is_threaded(self, results):
         assert results["email_001"].oc_number == "5RSG-00133"
         assert results["email_004"].oc_number == "5ALT-01226"
+
+
+class TestEdgeCaseBlock:
+    """Emails 501-520 are a constructed set: five cases per escalation reason.
+
+    Landing exactly 5/5/5/5 is the strongest signal available that the
+    escalation logic matches what the organizers intended, since no ground
+    truth ships with the bundle.
+    """
+
+    def test_five_of_each_reason(self, results):
+        import collections
+        tally = collections.Counter(
+            results[f"email_{i}"].review_reason for i in range(501, 521)
+        )
+        assert tally == {
+            "wrong_doc_type": 5, "missing_attachment": 5,
+            "unreadable": 5, "missing_value": 5,
+        }
+
+    def test_none_of_the_block_is_decided(self, results):
+        for i in range(501, 521):
+            r = results[f"email_{i}"]
+            assert r.category == "BL_COMPARISON"
+            assert r.status == "NEEDS_REVIEW", f"email_{i} was decided instead of escalated"
+
+    def test_a_placeholder_is_never_reported_as_a_defect(self, results):
+        # "____MT" against "SINGAPORE (SGSIN)" is an unfinished form, not a
+        # discrepancy. Reporting it would send a clerk to argue with a carrier.
+        for i in (517, 518):
+            assert results[f"email_{i}"].defect_fields == []

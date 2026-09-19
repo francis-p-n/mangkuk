@@ -1,6 +1,8 @@
 import pytest
 
-from sdoc.fields import extract_fields, label_to_field, normalize_label
+from sdoc.fields import (
+    extract_fields, is_placeholder, label_to_field, normalize_label,
+)
 
 SI = """SHIPPING INSTRUCTION
 ========================================
@@ -88,3 +90,31 @@ class TestExtraction:
         fs = extract_fields("SHIPPER: ACME PTE LTD | 80 RAFFLES PLACE; SINGAPORE")
         assert fs.get("shipper").value == "ACME PTE LTD"
         assert fs.get("shipper").detail == "80 RAFFLES PLACE; SINGAPORE"
+
+
+class TestPlaceholders:
+    @pytest.mark.parametrize("value", [
+        "", "   ", "____MT", "_______ MTS", "____", "---", "???", "??? MTS",
+        "TBA", "tba", "T.B.A.", "TBC", "TBD", "N/A", "n/a", "NIL", "NONE",
+        "PENDING", "Unknown", "XXX", "to be advised", "TO BE CONFIRMED",
+    ])
+    def test_unfilled_form_fields_are_not_values(self, value):
+        assert is_placeholder(value)
+
+    @pytest.mark.parametrize("value", [
+        "SINGAPORE (SGSIN)", "MOORIM SP CO., LTD", "6 x 40'HC", "21,577 KG",
+        "TBILISI, GEORGIA", "NANTONG, CHINA", "X-PRESS PEARL", "NANA TRADING",
+    ])
+    def test_real_values_survive(self, value):
+        assert not is_placeholder(value)
+
+    def test_a_placeholder_field_is_treated_as_missing(self):
+        fs = extract_fields(
+            "SHIPPING INSTRUCTION\n\n"
+            "Port of Loading (POL): ____MT\n"
+            "PORT OF DISCHARGE: TBA\n"
+            "Consignee: MOORIM SP CO., LTD\n"
+        )
+        assert "port_of_loading" in fs.missing
+        assert "port_of_discharge" in fs.missing
+        assert fs.get("consignee").value == "MOORIM SP CO., LTD"

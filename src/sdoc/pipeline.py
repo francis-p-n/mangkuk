@@ -15,6 +15,7 @@ from .compare import Verdict, compare_documents
 from .documents import Document, extract
 from .fields import FIELDS, extract_context, extract_fields
 from .mailsource import Email, MailSource
+from .places import PlaceBook, country_from_address
 from .shipment import Refs, find_refs
 
 
@@ -71,7 +72,15 @@ def _shipment_facts(si: Document | None, bl: Document | None) -> dict:
                 name: (fs.get(name).value if fs.get(name) else None)
                 for name in FIELDS
             }
-            return facts | extract_context(doc.text) | {"source": doc.role, "mode": "sea"}
+            # The party's address sits on the continuation line under its name.
+            consignee = fs.get("consignee")
+            address = consignee.detail if consignee else ""
+            return facts | extract_context(doc.text) | {
+                "source": doc.role,
+                "mode": "sea",
+                "consignee_address": address or None,
+                "consignee_country": country_from_address(address) or None,
+            }
     return {}
 
 
@@ -141,10 +150,34 @@ def run(
     resolver=None,
     triage=None,
 ) -> list[EmailResult]:
-    return [
+    results = [
         process_email(source, e, chase_as_comparison, resolver, triage)
         for e in source.emails()
     ]
+    settle_places(results)
+    return results
+
+
+def settle_places(results: list[EmailResult]) -> None:
+    """Give every port one spelling, so a filter lists each destination once.
+
+    Two passes: learn the UN/LOCODEs the documents do state, then apply them to
+    the ports written without one.
+    """
+    book = PlaceBook()
+    for r in results:
+        for key in ("port_of_loading", "port_of_discharge"):
+            book.learn(r.shipment.get(key) or "")
+
+    for r in results:
+        if not r.shipment:
+            continue
+        for key, prefix in (("port_of_loading", "loading"), ("port_of_discharge", "discharge")):
+            place = book.canonical(r.shipment.get(key) or "")
+            r.shipment[f"{prefix}_port"] = place["name"] or None
+            r.shipment[f"{prefix}_city"] = place["city"] or None
+            r.shipment[f"{prefix}_country"] = place["country"] or None
+            r.shipment[f"{prefix}_locode"] = place["locode"] or None
 
 
 def write_outputs(results: list[EmailResult], out_dir: str | Path) -> tuple[Path, Path]:
