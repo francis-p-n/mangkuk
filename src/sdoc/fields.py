@@ -88,14 +88,26 @@ def _is_continuation(line: str) -> bool:
     return bool(line) and line[0] in " \t" and ":" not in line.split("  ")[-1][:40]
 
 
+# A quantity looks like a quantity: digits, separators, then at most a unit.
+# Shape is checked as well as parseability, because a parser hunting for the
+# first number in a sentence will happily find one in "the vessel is SOLID 16".
+_WEIGHT_SHAPE = re.compile(r"^\d[\d,.\s]*[A-Za-z]{0,12}\.?$")
+_CONTAINER_SHAPE = re.compile(r"^\s*\d+\s*[xX]\s*\d+")
+
+
 def plausible(name: str, value: str) -> bool:
-    """Cheap sanity guard for values found without a colon to anchor them."""
+    """Sanity guard for values found without a colon to anchor them.
+
+    Applies to the block-layout pass and to anything the agent proposes —
+    the two places where a value is not pinned to its own label.
+    """
     from .normalize import parse_containers, parse_weight
 
+    value = value.strip()
     if name == "gross_weight_kg":
-        return parse_weight(value) is not None
+        return bool(_WEIGHT_SHAPE.match(value)) and parse_weight(value) is not None
     if name == "container_count":
-        return parse_containers(value) is not None
+        return bool(_CONTAINER_SHAPE.match(value)) and parse_containers(value) is not None
     return len(value) > 2 and any(ch.isalpha() for ch in value)
 
 
