@@ -272,12 +272,20 @@ presentation: a discrepancy fee, and payment held until it is resolved. The
 same escalation discipline matters more, not less, when the alternative to
 "a person needs to look at this" is a rejected presentation.
 
-### Deliberately out of scope
+### Deferred, and why
 
-SI generation from order data. Delivery orders and destination-side documents —
-nothing in the supplied corpus is downstream of the carrier. Authentication and
-multi-tenancy. Auto-sending any correspondence: the system drafts, a person
-sends.
+SI generation from order data would close the loop, so that the document the
+system authors becomes the reference it later checks. It is deferred rather
+than dismissed: party and port details must come from customer master data,
+which the bundle does not supply, and generating them from anything less is how
+a shipment gets sent to an address that never existed.
+
+Delivery orders and destination-side documents are out of scope because nothing
+in the supplied corpus sits downstream of the carrier. Authentication and
+multi-tenancy are out of scope for a hackathon build.
+
+Auto-sending correspondence is out of scope permanently. The system drafts, a
+person sends.
 
 ## Running against the organizers' server
 
