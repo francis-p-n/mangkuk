@@ -7,6 +7,73 @@ check the machine rather than trust it.
 
 Built for the Averis hackathon against the supplied 520-email bundle.
 
+## What it does, in plain terms
+
+*No technical background needed for this section.*
+
+When a shipping team sends a carrier a **shipping instruction**, the carrier
+sends back a **draft bill of lading** to be approved. Someone has to read both
+documents and check they say the same thing. It is slow, it is repetitive, and
+missing one wrong detail means an amended bill, a delay, and rework.
+
+This does that checking, and shows its working.
+
+**It sorts the inbox.** 520 emails arrive as one pile — document checks,
+requests for new instructions, invoice questions, operational updates and
+spam. Each one is put in the right category, so nothing waiting to be checked
+gets buried.
+
+**It reads the attachments — whatever form they arrive in.** Plain text, Excel,
+Word and PDF. If an attachment genuinely cannot be opened, it says so instead
+of pretending.
+
+**It compares seven details** on every shipment: shipper, consignee, notify
+party, loading port, discharge port, number of containers, and gross weight.
+
+**It understands that the two documents use different words for the same
+thing.** One says `Port of Loading`, the other says `Load Port`. One says
+`Consignee`, the other says `To the Order of`. It matches by meaning, not by
+matching the labels.
+
+**It catches the traps a tired person misses.** A port name changed while the
+port code stayed the same. Four containers on the draft where the instruction
+said three. A weight quoted in tonnes on one document and kilograms on the
+other. A "bill of lading" that is actually a packing list.
+
+**It does not make things up.** When a document is missing, unreadable, or the
+wrong document entirely, it stops and says exactly why, rather than guessing.
+Roughly one shipment in nine comes back as "a person needs to look at this,
+and here is the reason".
+
+**It shows you the proof.** Every mismatch displays the wording from both
+documents, with the line it came from. You are never asked to take the
+computer's word for it — which matters, because you cannot email a carrier
+saying "the software says you are wrong".
+
+**It writes the correction email for you — and never sends it.** You read it,
+change what you like, and send it from your own mailbox.
+
+### What it found in the sample inbox
+
+Of 126 document checks: **48 drafts had a real error** that would have gone to
+the carrier, **63 were correct**, and **15 needed a human**. That is 88 in
+every 100 decided without anyone reading a document — and, more to the point,
+48 mistakes caught before they became someone's problem.
+
+### How much of this is guesswork
+
+Very little, deliberately. The part that decides whether two values match is
+ordinary, predictable logic — the same input always gives the same answer, and
+every rule can be inspected. AI is used only for the small number of documents
+laid out in a way the rules do not recognise, and even then it is only allowed
+to *point at* a value already written in the document. It is never allowed to
+invent one. That restriction is enforced and tested.
+
+The checking has been tested by deliberately corrupting 602 correct documents
+and confirming every single error was caught, and against 31 real-world
+document quirks — European number formats, company names written five
+different ways, port aliases — with no mistakes in either direction.
+
 ```bash
 python run.py
 ```

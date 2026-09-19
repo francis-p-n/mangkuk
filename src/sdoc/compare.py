@@ -58,14 +58,20 @@ def compare_documents(si: Document | None, bl: Document | None, resolver=None) -
     """
     blocker = _blocked(si, bl)
     if blocker:
+        # Written for the person who has to act on it, not for a log file.
         detail = {
             "missing_attachment": "one of the two documents was not attached",
-            "unreadable": "an attachment could not be read as text",
+            "unreadable": "an attachment could not be opened",
             "wrong_doc_type": "an attachment is not the document it claims to be",
         }[blocker]
         if blocker == "wrong_doc_type" and si and bl:
             bad = si if not si.type_matches_role else bl
-            detail = f"{bad.role} attachment is a {bad.doc_type.value.lower().replace('_', ' ')}"
+            sent = bad.doc_type.value.lower().replace("_", " ")
+            expected = "bill of lading" if bad.role == "BL" else "shipping instruction"
+            article = "an" if sent[0] in "aeiou" else "a"
+            detail = (f"the carrier sent {article} {sent} instead of a {expected}"
+                      if bad.role == "BL"
+                      else f"the {expected} attachment is actually {article} {sent}")
         return Verdict(status="NEEDS_REVIEW", review_reason=blocker, note=detail)
 
     si_fields, bl_fields = extract_fields(si.text), extract_fields(bl.text)
@@ -114,6 +120,6 @@ def compare_fieldsets(si_fields: FieldSet, bl_fields: FieldSet) -> Verdict:
             status="NEEDS_REVIEW",
             review_reason="missing_value",
             comparisons=comparisons,
-            note="could not read: " + ", ".join(undecidable),
+            note="could not read: " + ", ".join(f.replace("_", " ") for f in undecidable),
         )
     return Verdict(status="OK", comparisons=comparisons)
