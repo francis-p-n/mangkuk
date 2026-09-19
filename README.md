@@ -224,13 +224,60 @@ desk that turns 126 document checks into 25 decisions.
 
 ## Roadmap
 
-Deliberately not built, in priority order: PDF extraction via Textract, which
-recovers the 15 unreadable checks. An LLM adjudicator on Bedrock for the 11.9%
-classifier residue and for extraction on documents the rules cannot parse. SI
-generation from order data, closing the loop so the document the system authors
-becomes the reference it later checks. Live Graph mailbox ingestion. An Outlook
-add-in, so the verification appears beside the email the clerk is already
-reading. Delivery orders and destination-side documents.
+### Completing the build
+
+PDF extraction via Textract, which recovers the 15 unreadable checks. An LLM
+adjudicator on Bedrock for the 11.9% classifier residue and for extraction on
+documents the rules cannot parse. Live Graph mailbox ingestion, replacing the
+bundle behind the existing `MailSource` interface. An Outlook add-in, so the
+verification appears beside the email the clerk is already reading rather than
+asking anyone to leave their inbox.
+
+### Multi-document consistency
+
+The same shipment produces more than two documents. Averis's shipping
+documentation service prepares the commercial invoice, packing list,
+certificate of origin, shipment advice and the export permit declaration for
+Singapore and Malaysia, alongside the Bill of Lading received from the freight
+forwarder and carrier. All of them carry overlapping fields — parties, ports,
+weights, container counts — and all of them have to agree.
+
+This is a loop, not a redesign. `compare_fieldsets` takes two field sets and
+does not care which documents produced them, so extending to "compare every
+document in the set against the SI as reference" reuses the comparator, the
+normalization rules and the evidence model unchanged. The three decoy
+attachments already in the corpus — a packing list, a certificate of origin and
+a commercial invoice — are exactly the documents this would cover, which is
+why they are identified by type today rather than merely rejected.
+
+The cost of error also rises here. A wrong field on an export permit
+declaration is not rework; it is an incorrect filing to a customs authority.
+
+### Letter of credit discrepancy checking
+
+The highest-value extension, and structurally the same problem. Averis already
+offers "LC Checking - Administration of LCs, including validation of LC
+policies and requirements, handle and resolve LC discrepancy" as part of this
+service line.
+
+An LC states required terms; the presented document set must match them;
+discrepancies have to be found before presentation. That is this engine with a
+different reference document — check against a source of truth, surface
+conflicts field by field with both values quoted, escalate what cannot be
+decided rather than guessing.
+
+The stakes are an order of magnitude higher than a draft BL. A BL mismatch
+costs an amendment and a delay. An LC discrepancy means the bank refuses the
+presentation: a discrepancy fee, and payment held until it is resolved. The
+same escalation discipline matters more, not less, when the alternative to
+"a person needs to look at this" is a rejected presentation.
+
+### Deliberately out of scope
+
+SI generation from order data. Delivery orders and destination-side documents —
+nothing in the supplied corpus is downstream of the carrier. Authentication and
+multi-tenancy. Auto-sending any correspondence: the system drafts, a person
+sends.
 
 ## Running against the organizers' server
 
