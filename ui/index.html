@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipment document desk</title>
+<style>
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-alt: #f1f1ee;
+  --border: #e2e2dd;
+  --border-strong: #cfcfc8;
+  --text: #1a1a18;
+  --text-soft: #5f5f58;
+  --text-faint: #8a8a82;
+  --danger: #b3261e;
+  --danger-bg: #fdecea;
+  --warning: #8a5300;
+  --warning-bg: #fdf1e0;
+  --success: #1d6b3f;
+  --success-bg: #e8f4ec;
+  --accent: #1a5490;
+  --accent-bg: #e8f0f8;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17171a;
+    --surface: #1f1f23;
+    --surface-alt: #26262b;
+    --border: #33333a;
+    --border-strong: #45454e;
+    --text: #ececea;
+    --text-soft: #a8a8a2;
+    --text-faint: #7d7d78;
+    --danger: #f2897f;
+    --danger-bg: #3a1f1d;
+    --warning: #e3ab5c;
+    --warning-bg: #3a2c16;
+    --success: #7fc99b;
+    --success-bg: #17301f;
+    --accent: #7fb0e5;
+    --accent-bg: #16283c;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
+.sub { color: var(--text-soft); font-size: 14px; margin: 0 0 20px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.tile { background: var(--surface-alt); border-radius: var(--radius); padding: 14px 16px; }
+.tile .label { font-size: 12.5px; color: var(--text-soft); }
+.tile .num { font-size: 26px; font-weight: 600; line-height: 1.2; }
+.tile.danger { background: var(--danger-bg); } .tile.danger .num, .tile.danger .label { color: var(--danger); }
+.tile.warn { background: var(--warning-bg); } .tile.warn .num, .tile.warn .label { color: var(--warning); }
+.tile.good { background: var(--success-bg); } .tile.good .num, .tile.good .label { color: var(--success); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+input[type=search], select {
+  font: inherit; font-size: 14px; padding: 7px 10px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius);
+}
+input[type=search] { min-width: 230px; flex: 1 1 230px; }
+.pill {
+  font: inherit; font-size: 13.5px; padding: 6px 13px; cursor: pointer;
+  background: var(--surface); color: var(--text-soft);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+}
+.pill[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.cols { display: grid; grid-template-columns: minmax(340px, 420px) 1fr; gap: 16px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.list { max-height: 72vh; overflow-y: auto; }
+.row {
+  display: block; width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: none; border: 0; border-bottom: 1px solid var(--border); padding: 11px 14px;
+}
+.row:hover { background: var(--surface-alt); }
+.row[aria-current="true"] { background: var(--accent-bg); }
+.row .top { display: flex; align-items: baseline; gap: 8px; }
+.row .who { font-weight: 600; font-size: 14px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .meta { font-size: 12.5px; color: var(--text-faint); margin-top: 2px; }
+.row .why { font-size: 12.5px; color: var(--danger); margin-top: 3px; }
+.badge { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.mismatch { background: var(--danger-bg); color: var(--danger); }
+.badge.review { background: var(--warning-bg); color: var(--warning); }
+.badge.ok { background: var(--success-bg); color: var(--success); }
+.detail { padding: 18px 20px; }
+.detail h2 { font-size: 18px; font-weight: 600; margin: 0 0 2px; }
+.detail .ref { font-size: 13px; color: var(--text-faint); margin: 0 0 14px; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+.fact { background: var(--surface-alt); border-radius: var(--radius); padding: 9px 12px; }
+.fact .k { font-size: 11.5px; color: var(--text-faint); }
+.fact .v { font-size: 13.5px; }
+.fact .v2 { font-size: 12px; color: var(--text-soft); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-weight: 500; font-size: 11.5px; color: var(--text-faint); padding: 5px 8px; text-transform: uppercase; letter-spacing: .04em; }
+td { padding: 8px; vertical-align: top; border-top: 1px solid var(--border); }
+tr.bad td { background: var(--danger-bg); color: var(--danger); border-top-color: transparent; }
+tr.bad td:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+tr.bad td:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.lbl { font-size: 11.5px; color: var(--text-faint); display: block; }
+tr.bad .lbl { color: var(--danger); opacity: .85; }
+.tick { color: var(--success); }
+.dash { color: var(--text-faint); }
+.sect { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.sect h3 { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+details summary { cursor: pointer; font-size: 13px; color: var(--accent); }
+pre {
+  background: var(--surface-alt); border-radius: var(--radius); padding: 11px 13px;
+  font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre-wrap; margin: 8px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.btn {
+  font: inherit; font-size: 13.5px; padding: 7px 14px; cursor: pointer; margin-right: 8px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+}
+.btn:hover { background: var(--surface-alt); }
+.btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+.note { font-size: 13px; color: var(--text-soft); background: var(--warning-bg); color: var(--warning);
+        padding: 9px 12px; border-radius: var(--radius); margin-bottom: 14px; }
+.empty { padding: 40px 20px; text-align: center; color: var(--text-faint); font-size: 14px; }
+.foot { margin-top: 22px; font-size: 12.5px; color: var(--text-faint); }
+@media (max-width: 900px) {
+  .cols { grid-template-columns: 1fr; }
+  .tiles, .facts { grid-template-columns: repeat(2, 1fr); }
+  .list { max-height: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Shipment document desk</h1>
+  <p class="sub" id="sub">Draft bills of lading checked against the shipping instruction that authorised them.</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Search consignee, OC number, port, vessel" aria-label="Search shipments">
+    <button class="pill" data-filter="all" aria-pressed="true">All</button>
+    <button class="pill" data-filter="MISMATCH" aria-pressed="false">Needs correction</button>
+    <button class="pill" data-filter="NEEDS_REVIEW" aria-pressed="false">Needs a person</button>
+    <button class="pill" data-filter="OK" aria-pressed="false">Clear</button>
+    <select id="consignee" aria-label="Filter by consignee"></select>
+  </div>
+
+  <div class="cols">
+    <div class="panel list" id="list"></div>
+    <div class="panel"><div class="detail" id="detail"></div></div>
+  </div>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script id="sdoc-data" type="application/json">__SDOC_DATA__</script>
+<script>
+const FIELD_NAMES = {
+  shipper: "Shipper",
+  consignee: "Consignee",
+  notify_party: "Notify party",
+  port_of_loading: "Port of loading",
+  port_of_discharge: "Port of discharge",
+  container_count: "Containers",
+  gross_weight_kg: "Gross weight"
+};
+const REASONS = {
+  wrong_doc_type: "The attached document is not the one it claims to be",
+  missing_attachment: "One of the two documents was not attached",
+  unreadable: "An attachment could not be read",
+  missing_value: "A required value is blank in the source document"
+};
+const STATUS_LABEL = { MISMATCH: "Needs correction", NEEDS_REVIEW: "Needs a person", OK: "Clear" };
+const STATUS_CLASS = { MISMATCH: "mismatch", NEEDS_REVIEW: "review", OK: "ok" };
+
+const raw = document.getElementById("sdoc-data").textContent;
+let DATA = null;
+try { DATA = JSON.parse(raw); } catch (e) { DATA = null; }
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const title = s => !s ? "" : String(s).toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase());
+// City name only: drop the UN/LOCODE parenthetical, keep terminal names like (Westport).
+const cityOf = p => title(String(p).replace(/\s*\([A-Z]{5}\)/g, "").split(",")[0].trim());
+// When a document could not be read there is no extracted consignee, so fall
+// back to what the email itself says rather than showing a shipment as nameless.
+const label = s => title(s.shipment.consignee) || (s.subject || "").slice(0, 46) || s.email_id;
+
+let state = { filter: "all", consignee: "", q: "", selected: null };
+
+function boot() {
+  if (!DATA || !DATA.shipments) {
+    document.getElementById("list").innerHTML =
+      '<div class="empty">No results loaded. Run <code>python run.py</code> then <code>python ui/build.py</code>.</div>';
+    return;
+  }
+  renderTiles();
+  fillConsignees();
+  wire();
+  render();
+  document.getElementById("foot").textContent =
+    `${DATA.totals.emails} emails triaged · ${DATA.totals.comparisons} document checks · generated ${DATA.generated_at}`;
+}
+
+function renderTiles() {
+  const t = DATA.totals;
+  document.getElementById("tiles").innerHTML = `
+    <div class="tile"><div class="label">Drafts checked</div><div class="num">${t.comparisons}</div></div>
+    <div class="tile danger"><div class="label">Needs correction</div><div class="num">${t.mismatch}</div></div>
+    <div class="tile warn"><div class="label">Needs a person</div><div class="num">${t.review}</div></div>
+    <div class="tile good"><div class="label">Cleared automatically</div><div class="num">${t.ok}</div></div>`;
+}
+
+function fillConsignees() {
+  const counts = new Map();
+  for (const s of DATA.shipments) {
+    const c = s.shipment.consignee;
+    if (c) counts.set(c, (counts.get(c) || 0) + 1);
+  }
+  const opts = [...counts.entries()].sort((a, b) => b[1] - a[1])
+    .map(([c, n]) => `<option value="${esc(c)}">${esc(title(c))} (${n})</option>`).join("");
+  document.getElementById("consignee").innerHTML =
+    `<option value="">All consignees</option>${opts}`;
+}
+
+function wire() {
+  document.querySelectorAll(".pill").forEach(b => b.addEventListener("click", () => {
+    state.filter = b.dataset.filter;
+    document.querySelectorAll(".pill").forEach(x =>
+      x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+  document.getElementById("consignee").addEventListener("change", e => {
+    state.consignee = e.target.value; render();
+  });
+  document.getElementById("q").addEventListener("input", e => {
+    state.q = e.target.value.trim().toLowerCase(); render();
+  });
+}
+
+function visible() {
+  return DATA.shipments.filter(s => {
+    if (state.filter !== "all" && s.status !== state.filter) return false;
+    if (state.consignee && s.shipment.consignee !== state.consignee) return false;
+    if (state.q) {
+      const hay = [s.shipment.consignee, s.oc_number, s.booking_ref, s.subject,
+        s.shipment.port_of_discharge, s.shipment.port_of_loading, s.shipment.vessel]
+        .join(" ").toLowerCase();
+      if (!hay.includes(state.q)) return false;
+    }
+    return true;
+  });
+}
+
+function render() {
+  const rows = visible();
+  const list = document.getElementById("list");
+  if (!rows.length) {
+    list.innerHTML = '<div class="empty">Nothing matches those filters.</div>';
+    document.getElementById("detail").innerHTML = '<div class="empty">No shipment selected.</div>';
+    return;
+  }
+  if (!state.selected || !rows.some(r => r.email_id === state.selected)) {
+    state.selected = rows[0].email_id;
+  }
+  list.innerHTML = rows.map(rowHtml).join("");
+  list.querySelectorAll(".row").forEach(el => el.addEventListener("click", () => {
+    state.selected = el.dataset.id; render();
+    document.getElementById("detail").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }));
+  renderDetail(rows.find(r => r.email_id === state.selected));
+}
+
+function rowHtml(s) {
+  const why = s.status === "MISMATCH"
+    ? s.defect_fields.map(f => FIELD_NAMES[f].toLowerCase()).join(", ")
+    : (s.status === "NEEDS_REVIEW" ? (REASONS[s.review_reason] || s.review_reason) : "");
+  const route = [s.shipment.port_of_loading, s.shipment.port_of_discharge]
+    .filter(Boolean).map(cityOf).join(" → ");
+  return `<button class="row" data-id="${esc(s.email_id)}" aria-current="${s.email_id === state.selected}">
+    <span class="top">
+      <span class="who">${esc(label(s))}</span>
+      <span class="badge ${STATUS_CLASS[s.status]}">${STATUS_LABEL[s.status]}</span>
+    </span>
+    <span class="meta">${esc(s.oc_number || s.booking_ref || s.email_id)}${route ? " · " + esc(route) : ""}</span>
+    ${why ? `<span class="why">${esc(why)}</span>` : ""}
+  </button>`;
+}
+
+function fact(k, v, v2) {
+  return `<div class="fact"><div class="k">${esc(k)}</div><div class="v">${esc(v || "—")}</div>
+    ${v2 ? `<div class="v2">${esc(v2)}</div>` : ""}</div>`;
+}
+
+function renderDetail(s) {
+  const sh = s.shipment || {};
+  const route = [sh.port_of_loading, sh.port_of_discharge].filter(Boolean)
+    .map(cityOf).join(" → ");
+  const codes = [sh.port_of_loading, sh.port_of_discharge].filter(Boolean)
+    .map(p => (p.match(/\(([A-Z]{5})\)/) || [])[1]).filter(Boolean).join(" → ");
+
+  const hasFacts = Boolean(route || sh.container_count || sh.commodity || sh.vessel);
+
+  const headline = s.status === "MISMATCH"
+    ? `${s.defect_fields.length} field${s.defect_fields.length > 1 ? "s" : ""} need correcting`
+    : s.status === "OK" ? "All seven fields agree" : "Cannot be checked automatically";
+
+  let body = "";
+  if (s.comparisons && s.comparisons.length) {
+    body = `<table>
+      <thead><tr><th>Field</th><th>Shipping instruction</th><th>Draft bill of lading</th><th></th></tr></thead>
+      <tbody>${s.comparisons.map(cmpRow).join("")}</tbody></table>`;
+  } else {
+    // The reason is already stated in the banner above; don't repeat it here.
+    body = `<p class="ref">No fields could be compared.${s.note ? " " + esc(s.note[0].toUpperCase() + s.note.slice(1)) + "." : ""}</p>`;
+  }
+
+  const evidence = (s.comparisons || []).filter(c => c.agree === false).map(c => `
+${FIELD_NAMES[c.field]}
+  SI  line ${c.si_line}:  ${c.si_label}: ${c.si_value}
+  BL  line ${c.bl_line}:  ${c.bl_label}: ${c.bl_value}`).join("\n");
+
+  document.getElementById("detail").innerHTML = `
+    <h2>${esc(label(s))} — ${esc(headline)}</h2>
+    <p class="ref">${esc(s.oc_number || "no OC number")}${s.booking_ref ? " · booking " + esc(s.booking_ref) : ""}
+       · <span title="${esc(s.subject)}">${esc((s.subject || "").slice(0, 60))}</span></p>
+
+    ${s.status === "NEEDS_REVIEW" ? `<div class="note">${esc(REASONS[s.review_reason] || s.review_reason)}. Escalated with full context rather than guessed.</div>` : ""}
+
+    ${hasFacts ? `<div class="facts">
+      ${fact("Route", route || "—", codes ? codes + " · sea" : "sea")}
+      ${fact("Cargo", sh.container_count, sh.gross_weight_kg)}
+      ${fact("Product", title(sh.commodity), sh.shipper ? title(sh.shipper) : "")}
+      ${fact("Carrier", sh.vessel, sh.bl_number ? "B/L " + sh.bl_number : "")}
+    </div>` : ""}
+
+    <div class="sect"><h3>Compared against the shipping instruction</h3>${body}</div>
+
+    ${evidence ? `<div class="sect"><details><summary>Show the lines it read</summary><pre>${esc(evidence.trim())}</pre></details></div>` : ""}
+
+    ${s.status === "MISMATCH" ? `<div class="sect">
+      <button class="btn primary" id="draft">Draft correction reply</button>
+      <button class="btn" id="copy">Copy summary</button>
+      <div id="draftout"></div>
+    </div>` : ""}`;
+
+  const d = document.getElementById("draft");
+  if (d) d.addEventListener("click", () => {
+    document.getElementById("draftout").innerHTML = `<pre>${esc(correctionText(s))}</pre>
+      <p class="foot">Nothing is sent. Review, then send from your mail client.</p>`;
+  });
+  const c = document.getElementById("copy");
+  if (c) c.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(correctionText(s)); c.textContent = "Copied"; }
+    catch (e) { c.textContent = "Copy blocked"; }
+    setTimeout(() => { c.textContent = "Copy summary"; }, 1600);
+  });
+}
+
+function cmpRow(c) {
+  const bad = c.agree === false;
+  const undecided = c.agree === null;
+  const mark = bad ? "" : undecided ? '<span class="dash">—</span>' : '<span class="tick">✓</span>';
+  return `<tr class="${bad ? "bad" : ""}">
+    <td>${esc(FIELD_NAMES[c.field])}</td>
+    <td>${esc(c.si_value || "—")}<span class="lbl">${esc(c.si_label || "not found")}</span></td>
+    <td>${esc(c.bl_value || "—")}<span class="lbl">${esc(c.bl_label || "not found")}</span></td>
+    <td>${mark}</td></tr>`;
+}
+
+function correctionText(s) {
+  const ref = s.oc_number || s.booking_ref || s.email_id;
+  const lines = s.defect_fields.map(f => {
+    const c = s.comparisons.find(x => x.field === f);
+    return `  ${FIELD_NAMES[f]}\n    Shipping instruction: ${c.si_value}\n    Draft bill of lading: ${c.bl_value}`;
+  }).join("\n");
+  return `Subject: Draft BL correction required - ${ref}
+
+Hi,
+
+Checking the draft bill of lading for ${ref} against the shipping instruction,
+the following ${s.defect_fields.length === 1 ? "field does" : "fields do"} not match:
+
+${lines}
+
+The shipping instruction is the reference. Please amend the draft and resend
+for confirmation.
+
+Thank you.`;
+}
+
+boot();
+</script>
+</body>
+</html>
