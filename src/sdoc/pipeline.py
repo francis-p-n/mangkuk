@@ -74,8 +74,10 @@ def _shipment_facts(si: Document | None, bl: Document | None) -> dict:
     return {}
 
 
-def process_email(source: MailSource, email: Email) -> EmailResult:
-    cls = classify(email.subject, email.body, email.domain, email.attachments)
+def process_email(source: MailSource, email: Email, chase_as_comparison: bool = False) -> EmailResult:
+    cls = classify(
+        email.subject, email.body, email.domain, email.attachments, chase_as_comparison
+    )
     refs: Refs = find_refs(email.subject, email.body)
     result = EmailResult(
         email_id=email.email_id,
@@ -117,8 +119,8 @@ def process_email(source: MailSource, email: Email) -> EmailResult:
     return result
 
 
-def run(source: MailSource) -> list[EmailResult]:
-    return [process_email(source, email) for email in source.emails()]
+def run(source: MailSource, chase_as_comparison: bool = False) -> list[EmailResult]:
+    return [process_email(source, e, chase_as_comparison) for e in source.emails()]
 
 
 def write_outputs(results: list[EmailResult], out_dir: str | Path) -> tuple[Path, Path]:

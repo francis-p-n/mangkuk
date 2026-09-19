@@ -24,9 +24,14 @@ def main() -> int:
     ap.add_argument("--source", default="data", help="bundle folder or server URL")
     ap.add_argument("--out", default="out", help="output folder")
     ap.add_argument("--sample", default="data/sample_submission.json")
+    ap.add_argument(
+        "--chase-as-comparison", action="store_true",
+        help="treat 'please send the draft BL for checking' emails as comparison "
+             "requests with a missing attachment (see docs/assumptions.md)",
+    )
     args = ap.parse_args()
 
-    results = run(open_source(args.source))
+    results = run(open_source(args.source), args.chase_as_comparison)
     sub_path, res_path = write_outputs(results, args.out)
 
     cats = collections.Counter(r.category for r in results)

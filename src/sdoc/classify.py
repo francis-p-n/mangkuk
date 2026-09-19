@@ -75,7 +75,21 @@ def _has_shipping_docs(attachments: list[str]) -> bool:
     return any("_SI." in a or "_BL." in a for a in attachments)
 
 
-def classify(subject: str, body: str, sender_domain: str, attachments: list[str]) -> Classification:
+def classify(
+    subject: str,
+    body: str,
+    sender_domain: str,
+    attachments: list[str],
+    chase_as_comparison: bool = False,
+) -> Classification:
+    """Classify one message.
+
+    `chase_as_comparison` decides the single biggest open question in this
+    corpus: 91 emails ask a counterparty to *send* a draft BL for checking and
+    carry no attachment. Either they are operational chasers (GENERAL), or they
+    are comparison requests that cannot proceed (BL_COMPARISON +
+    missing_attachment). See docs/assumptions.md — flip the flag to switch.
+    """
     subj = subject.lower()
     text = clean_body(body).lower()
 
@@ -90,7 +104,9 @@ def classify(subject: str, body: str, sender_domain: str, attachments: list[str]
     if any(p in text for p in COMPARISON_PHRASES):
         return Classification("BL_COMPARISON", "comparison_phrase", 0.90)
     if any(p in text for p in CHASE_PHRASES):
-        return Classification("GENERAL", "chasing_draft_bl", 0.80)
+        if chase_as_comparison:
+            return Classification("BL_COMPARISON", "chasing_draft_bl", 0.60)
+        return Classification("GENERAL", "chasing_draft_bl", 0.60)
 
     if any(p in text for p in SI_PHRASES) or any(s in subj for s in SI_SUBJECTS):
         return Classification("SI_REQUEST", "si_workflow", 0.92)
