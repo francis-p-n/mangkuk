@@ -1,0 +1,137 @@
+"""Orchestration: inbox in, submission.json + results.json out.
+
+Two outputs on purpose. `submission.json` is the narrow shape the scorer wants.
+`results.json` is everything a human needs — evidence lines, shipment refs,
+per-field comparisons — and is what the workspace UI reads.
+"""
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field as dc_field
+from pathlib import Path
+
+from .classify import classify
+from .compare import Verdict, compare_documents
+from .documents import Document, extract
+from .fields import FIELDS, extract_fields
+from .mailsource import Email, MailSource
+from .shipment import Refs, find_refs
+
+
+@dataclass
+class EmailResult:
+    email_id: str
+    category: str
+    rule: str
+    status: str = "OK"
+    review_reason: str | None = None
+    has_defect: bool = False
+    defect_fields: list[str] = dc_field(default_factory=list)
+    # context for the UI, ignored by the scorer
+    subject: str = ""
+    sender: str = ""
+    oc_number: str | None = None
+    booking_ref: str | None = None
+    note: str = ""
+    documents: list[dict] = dc_field(default_factory=list)
+    comparisons: list[dict] = dc_field(default_factory=list)
+    shipment: dict = dc_field(default_factory=dict)
+
+    def to_submission(self) -> dict:
+        return {
+            "category": self.category,
+            "status": self.status,
+            "review_reason": self.review_reason,
+            "defect_fields": list(self.defect_fields),
+            "has_defect": self.has_defect,
+        }
+
+
+def _doc_summary(doc: Document | None, role: str) -> dict:
+    if doc is None:
+        return {"role": role, "present": False}
+    return {
+        "role": role,
+        "present": True,
+        "path": doc.path,
+        "format": doc.fmt,
+        "readable": doc.ok,
+        "doc_type": doc.doc_type.value,
+        "type_matches_role": doc.type_matches_role,
+        "error": doc.error,
+    }
+
+
+def _shipment_facts(si: Document | None, bl: Document | None) -> dict:
+    """Header facts for the shipment card, preferring the SI as the reference."""
+    for doc in (si, bl):
+        if doc is not None and doc.ok:
+            fs = extract_fields(doc.text)
+            return {
+                name: (fs.get(name).value if fs.get(name) else None)
+                for name in FIELDS
+            } | {"source": doc.role, "mode": "sea"}
+    return {}
+
+
+def process_email(source: MailSource, email: Email) -> EmailResult:
+    cls = classify(email.subject, email.body, email.domain, email.attachments)
+    refs: Refs = find_refs(email.subject, email.body)
+    result = EmailResult(
+        email_id=email.email_id,
+        category=cls.category,
+        rule=cls.rule,
+        subject=email.subject,
+        sender=email.sender,
+        oc_number=refs.oc,
+        booking_ref=refs.booking,
+    )
+
+    if cls.category != "BL_COMPARISON":
+        return result
+
+    si = bl = None
+    for path in email.attachments:
+        doc = extract(source, path)
+        if doc.role == "SI":
+            si = doc
+        else:
+            bl = doc
+
+    verdict: Verdict = compare_documents(si, bl)
+    result.status = verdict.status
+    result.review_reason = verdict.review_reason
+    result.has_defect = verdict.has_defect
+    result.defect_fields = verdict.defect_fields
+    result.note = verdict.note
+    result.documents = [_doc_summary(si, "SI"), _doc_summary(bl, "BL")]
+    result.comparisons = [asdict(c) for c in verdict.comparisons]
+    result.shipment = _shipment_facts(si, bl)
+
+    # Documents carry references the email subject may not.
+    if not result.oc_number:
+        doc_refs = find_refs(*(d.text for d in (si, bl) if d and d.ok))
+        result.oc_number = result.oc_number or doc_refs.oc
+        result.booking_ref = result.booking_ref or doc_refs.booking
+
+    return result
+
+
+def run(source: MailSource) -> list[EmailResult]:
+    return [process_email(source, email) for email in source.emails()]
+
+
+def write_outputs(results: list[EmailResult], out_dir: str | Path) -> tuple[Path, Path]:
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    submission = {r.email_id: r.to_submission() for r in results}
+    sub_path = out / "submission.json"
+    sub_path.write_text(json.dumps(submission, indent=2), encoding="utf-8")
+
+    res_path = out / "results.json"
+    res_path.write_text(
+        json.dumps([asdict(r) for r in results], indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return sub_path, res_path
