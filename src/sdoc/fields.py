@@ -88,7 +88,36 @@ def _is_continuation(line: str) -> bool:
     return bool(line) and line[0] in " \t" and ":" not in line.split("  ")[-1][:40]
 
 
+def plausible(name: str, value: str) -> bool:
+    """Cheap sanity guard for values found without a colon to anchor them."""
+    from .normalize import parse_containers, parse_weight
+
+    if name == "gross_weight_kg":
+        return parse_weight(value) is not None
+    if name == "container_count":
+        return parse_containers(value) is not None
+    return len(value) > 2 and any(ch.isalpha() for ch in value)
+
+
 def extract_fields(text: str) -> FieldSet:
+    """Two passes, most reliable signal first.
+
+    Pass 1 reads 'Label: value' lines. Pass 2 handles block layouts, where the
+    label sits on its own line and the value follows underneath — the shape PDF
+    extraction produces.
+
+    The order is load-bearing. A PDF bill of lading has a container table whose
+    header reads 'GROSS WEIGHT (KG)' with container numbers underneath, and the
+    real total further down as 'TOTAL Gross Weight (KG): 131,322 KG'. Reading
+    colon-anchored values first means the total wins and the table header is
+    skipped as already-filled.
+    """
+    fs = _pass_labelled(text)
+    _pass_block(text, fs)
+    return fs
+
+
+def _pass_labelled(text: str) -> FieldSet:
     """Parse 'Label: value' lines, keeping the first value seen per field.
 
     First-wins matters: a BL may repeat a party lower down in freight terms,
@@ -137,6 +166,45 @@ def extract_fields(text: str) -> FieldSet:
             last_field = None
 
     return fs
+
+
+def _pass_block(text: str, fs: FieldSet) -> None:
+    """Fill still-missing fields from a label-line / value-line-below layout."""
+    lines = text.splitlines()
+
+    for i, raw in enumerate(lines):
+        label = raw.strip()
+        if not label or ":" in label:
+            continue
+        name = label_to_field(label)
+        if not name or name in fs.values:
+            continue
+
+        j = i + 1
+        while j < len(lines) and not lines[j].strip():
+            j += 1
+        if j >= len(lines):
+            continue
+
+        value = lines[j].strip()
+        # The next line being another label means this field has no value here.
+        if ":" in value or label_to_field(value) or not plausible(name, value):
+            continue
+
+        detail_parts: list[str] = []
+        for k in range(j + 1, min(j + 5, len(lines))):
+            nxt = lines[k].strip()
+            if not nxt or ":" in nxt or label_to_field(nxt):
+                break
+            detail_parts.append(nxt)
+
+        fs.values[name] = Extracted(
+            value=value,
+            label=label,
+            line_no=j + 1,
+            raw_line=lines[j].rstrip(),
+            detail="; ".join(detail_parts),
+        )
 
 
 # Context shown on the shipment card. Never compared — these exist so a person

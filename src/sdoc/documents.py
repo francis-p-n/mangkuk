@@ -27,15 +27,19 @@ class DocType(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
+# Order matters. A PDF shipping instruction is titled "BILL OF LADING
+# INSTRUCTION", which contains "bill of lading" — so the instruction markers
+# must be tested before the bill-of-lading marker or every PDF SI reads as a BL.
 TITLE_MARKERS: list[tuple[DocType, tuple[str, ...]]] = [
+    (DocType.SHIPPING_INSTRUCTION,
+     ("shipping instruction", "bill of lading instruction", "bl instruction")),
     (DocType.BILL_OF_LADING, ("bill of lading",)),
-    (DocType.SHIPPING_INSTRUCTION, ("shipping instruction", "bl instruction")),
     (DocType.PACKING_LIST, ("packing list",)),
     (DocType.CERTIFICATE_OF_ORIGIN, ("certificate of origin",)),
     (DocType.COMMERCIAL_INVOICE, ("commercial invoice",)),
 ]
 
-SUPPORTED = {".txt", ".xlsx", ".docx"}
+SUPPORTED = {".txt", ".xlsx", ".docx", ".pdf"}
 
 
 @dataclass
@@ -100,6 +104,13 @@ def _from_docx(raw: bytes) -> str:
     return "\n".join(lines)
 
 
+def _from_pdf(raw: bytes) -> str:
+    from pypdf import PdfReader
+
+    reader = PdfReader(io.BytesIO(raw))
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+
 def extract(source: MailSource, att_path: str) -> Document:
     """Read one attachment into a Document. Never raises — failures set `error`."""
     role = "SI" if "_SI." in att_path else "BL"
@@ -107,8 +118,8 @@ def extract(source: MailSource, att_path: str) -> Document:
     doc = Document(path=att_path, role=role, fmt=fmt)
 
     if fmt not in SUPPORTED:
-        # PDFs land here. A declared-unreadable document is a correct answer;
-        # a hallucinated one is not.
+        # A declared-unreadable document is a correct answer; a hallucinated
+        # one is not.
         doc.error = "unreadable"
         return doc
 
@@ -118,8 +129,12 @@ def extract(source: MailSource, att_path: str) -> Document:
             doc.text = raw.decode("utf-8", errors="replace")
         elif fmt == ".xlsx":
             doc.text = _from_xlsx(raw)
-        else:
+        elif fmt == ".docx":
             doc.text = _from_docx(raw)
+        else:
+            # Image-only or truncated PDFs extract to nothing and fall through
+            # to the empty-text check below rather than being guessed at.
+            doc.text = _from_pdf(raw)
     except Exception:
         doc.error = "unreadable"
         return doc

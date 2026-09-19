@@ -50,10 +50,10 @@ class TestWholeInbox:
                     assert c["si_value"] and c["bl_value"]
                     assert c["si_label"] and c["bl_label"]
 
-    def test_no_pdf_pair_is_silently_decided(self, results):
+    def test_unextractable_documents_are_never_silently_decided(self, results):
         for r in results.values():
-            fmts = {d.get("format") for d in r.documents if d.get("present")}
-            if ".pdf" in fmts:
+            unreadable = [d for d in r.documents if d.get("present") and not d.get("readable")]
+            if unreadable:
                 assert r.status == "NEEDS_REVIEW" and r.review_reason == "unreadable"
 
 
@@ -76,6 +76,22 @@ class TestPinnedCases:
     def test_known_clean_drafts(self, results, eid):
         assert results[eid].status == "OK"
 
+    def test_pdf_pair_is_read_from_a_block_layout(self, results):
+        # Labels sit on their own line with the value underneath, and the
+        # container table must not be mistaken for the weight total.
+        r = results["email_059"]
+        assert r.status == "OK"
+        by_field = {c["field"]: c for c in r.comparisons}
+        assert by_field["gross_weight_kg"]["si_value"] == "131,322 KG"
+        assert by_field["consignee"]["bl_label"] == "Consignee (Non-Negotiable)"
+
+    @pytest.mark.parametrize("eid,fields", [
+        ("email_313", ["container_count", "gross_weight_kg"]),
+        ("email_434", ["port_of_discharge"]),
+    ])
+    def test_defects_found_inside_pdfs(self, results, eid, fields):
+        assert sorted(results[eid].defect_fields) == sorted(fields)
+
     @pytest.mark.parametrize("eid,reason", [
         ("email_501", "wrong_doc_type"),
         ("email_502", "wrong_doc_type"),
@@ -84,7 +100,7 @@ class TestPinnedCases:
         ("email_516", "missing_value"),
         ("email_519", "missing_value"),
         ("email_520", "missing_value"),
-        ("email_059", "unreadable"),
+        ("email_513", "unreadable"),   # PDF with no extractable text
     ])
     def test_known_escalations(self, results, eid, reason):
         r = results[eid]
