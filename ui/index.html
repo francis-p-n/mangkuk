@@ -111,6 +111,9 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 
 .cols { display: grid; grid-template-columns: minmax(320px, 380px) 1fr; gap: 22px; align-items: start; }
+/* Grid items default to min-width:auto, so the nowrap consignee name in a row
+   sets a floor wider than a phone screen and the page scrolls sideways. */
+.cols > * { min-width: 0; }
 .card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); }
 .list { max-height: 72vh; overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-lg); }
 .listtop { padding: 13px 17px 11px; border-bottom: 1px solid var(--rule); color: var(--ink-faint); font-size: 14px; }
@@ -178,11 +181,19 @@ details[open] summary::before { transform: rotate(90deg); }
 
 .callout { font-size: 16px; padding: 14px 16px; border-radius: var(--r); margin-bottom: 20px;
            background: var(--look-wash); color: var(--look); border: 1px solid var(--look-rule); }
+.nothing { color: var(--ink-soft); margin: 0; }
 .none { padding: 60px 26px; text-align: center; color: var(--ink-faint); }
 .foot { margin-top: 30px; font-size: 14px; color: var(--ink-faint); }
 
 @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } .list { max-height: none; } }
-@media (max-width: 640px) { .wrap { padding: 22px 16px 60px; } .detail { padding: 20px 18px; } h1 { font-size: 25px; } }
+@media (max-width: 640px) {
+  .wrap { padding: 22px 16px 60px; }
+  .detail { padding: 20px 18px; }
+  h1 { font-size: 25px; }
+  /* Wrapped onto its own line, a right-aligned button reads as stranded. */
+  .titlerow .plain { margin-left: 0; }
+  .intro { padding: 18px 18px 20px; }
+}
 </style>
 </head>
 <body>
@@ -271,7 +282,17 @@ const FIXES = { Gmbh: "GmbH" };
 const title = s => !s ? "" : String(s).toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase())
   .split(/(\s|-|\/)/).map(w => FIXES[w] || (KEEP_CAPS.has(w.toUpperCase()) ? w.toUpperCase() : w)).join("");
 const cityOf = p => title(String(p).replace(/\s*\([A-Z]{5}\)/g, "").split(",")[0].trim());
-const who = s => title(s.shipment.consignee) || (s.subject || "").slice(0, 44) || s.email_id;
+
+// Cut on a word boundary. A heading ending "PAPERONE DIGITA" looks broken.
+function clip(text, max) {
+  const s = String(text || "").replace(/\s*_\s*/g, " · ").replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const space = cut.lastIndexOf(" ");
+  return (space > max * 0.55 ? cut.slice(0, space) : cut).replace(/[\s·,.-]+$/, "") + "…";
+}
+// Named by the customer when we know them, by the email when we do not.
+const who = s => title(s.shipment.consignee) || clip(s.subject, 52) || s.email_id;
 
 // "6 x 40'HC" reads as "6 forty-foot high-cube containers" to the person doing the job.
 function plainBoxes(spec) {
@@ -392,8 +413,8 @@ function render() {
     ? `${rows.length} shipments` : `${rows.length} of ${DATA.shipments.length} shipments`;
   const list = document.getElementById("list");
   if (!rows.length) {
-    list.innerHTML = '<div class="none">Nothing matches what you picked.</div>';
-    document.getElementById("detail").innerHTML = '<div class="none">Pick a shipment on the left.</div>';
+    list.innerHTML = '<div class="none">No shipments match your search or filters.</div>';
+    document.getElementById("detail").innerHTML = '<div class="none">Clear a filter to see shipments again.</div>';
     return;
   }
   if (!state.selected || !rows.some(r => r.email_id === state.selected)) state.selected = rows[0].email_id;
@@ -420,7 +441,7 @@ function cargoLine(sh) {
   if (sh.container_count) {
     let c = plainBoxes(sh.container_count);
     if (sh.gross_weight_kg) c += `, ${plainWeight(sh.gross_weight_kg)}`;
-    if (sh.commodity) c += ` of ${String(sh.commodity).toLowerCase()}`;
+    if (sh.commodity) c += ` of ${title(sh.commodity)}`;
     bits.push(c + ".");
   } else if (sh.commodity) bits.push(title(sh.commodity) + ".");
   const from = sh.port_of_loading ? cityOf(sh.port_of_loading) : "";
@@ -443,7 +464,9 @@ function renderDetail(s) {
     <table><thead><tr><th>Detail</th><th>Your instruction says</th><th>The carrier's draft says</th><th></th></tr></thead>
     <tbody>${s.comparisons.map(cmpRow).join("")}</tbody></table>
     ${n ? `<p class="todo">Ask the carrier to correct ${n === 1 ? "this detail" : "these details"} and send a new draft.</p>` : ""}`
-    : `<h3>What we checked</h3><p class="cargo" style="margin:0">Nothing could be compared${s.note ? ", because " + esc(s.note) : ""}.</p>`;
+    // The reason is already stated in the callout above; repeating it verbatim
+    // reads like the page is stuck.
+    : `<h3>What we checked</h3><p class="nothing">None of the seven details could be compared.</p>`;
 
   const bad = (s.comparisons || []).filter(c => c.agree === false);
   const quotes = bad.map(c => `<p><span class="doc">${esc(NAMES[c.field])}, as written on your instruction (line ${c.si_line}):</span>
@@ -490,7 +513,7 @@ function renderDetail(s) {
 
 function cmpRow(c) {
   const bad = c.agree === false, unknown = c.agree === null;
-  const mark = bad ? "" : unknown ? '<span class="dash">not shown</span>' : '<span class="yes">✓</span>';
+  const mark = bad ? "" : unknown ? '<span class="dash">couldn’t read</span>' : '<span class="yes">✓</span>';
   return `<tr class="${bad ? "bad" : ""}">
     <td>${esc(NAMES[c.field])}</td>
     <td>${esc(c.si_value || "—")}<span class="src">${esc(c.si_label || "not on the document")}</span></td>

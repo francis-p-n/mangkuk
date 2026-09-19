@@ -12,7 +12,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / "src"))
 
 from sdoc.agents import (                      # noqa: E402
     AgentStats, AgentUnavailable, FieldResolver, TriageAgent, make_client,
@@ -24,9 +25,9 @@ from sdoc.validate import validate                # noqa: E402
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="SDOC verification pipeline")
-    ap.add_argument("--source", default="data", help="bundle folder or server URL")
-    ap.add_argument("--out", default="out", help="output folder")
-    ap.add_argument("--sample", default="data/sample_submission.json")
+    ap.add_argument("--source", default=str(ROOT / "data"), help="bundle folder or server URL")
+    ap.add_argument("--out", default=str(ROOT / "out"), help="output folder")
+    ap.add_argument("--sample", default=str(ROOT / "data" / "sample_submission.json"))
     ap.add_argument(
         "--chase-as-comparison", action="store_true",
         help="treat 'please send the draft BL for checking' emails as comparison "

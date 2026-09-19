@@ -8,6 +8,8 @@ import json
 
 import pytest
 
+from conftest import DATA_DIR, SAMPLE_SUBMISSION
+
 from sdoc.mailsource import BundleMailSource
 from sdoc.pipeline import run
 from sdoc.validate import validate
@@ -15,7 +17,7 @@ from sdoc.validate import validate
 
 @pytest.fixture(scope="module")
 def results():
-    return {r.email_id: r for r in run(BundleMailSource("data"))}
+    return {r.email_id: r for r in run(BundleMailSource(DATA_DIR))}
 
 
 class TestWholeInbox:
@@ -24,7 +26,7 @@ class TestWholeInbox:
 
     def test_submission_is_valid(self, results):
         sub = {eid: r.to_submission() for eid, r in results.items()}
-        assert validate(sub, "data/sample_submission.json") == []
+        assert validate(sub, SAMPLE_SUBMISSION) == []
 
     def test_all_five_categories_are_used(self, results):
         assert {r.category for r in results.values()} == {

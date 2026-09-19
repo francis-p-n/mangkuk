@@ -19,7 +19,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from sdoc.compare import compare_fieldsets                      # noqa: E402
 from sdoc.documents import extract                              # noqa: E402
@@ -78,7 +79,7 @@ class Outcome:
 
 
 def main() -> int:
-    src = BundleMailSource("data")
+    src = BundleMailSource(ROOT / "data")
     clean = [r for r in run(src) if r.category == "BL_COMPARISON" and r.status == "OK"]
     print(f"clean pairs available as mutation hosts: {len(clean)}\n")
 
@@ -140,8 +141,8 @@ def main() -> int:
         for o in misses[:10]:
             print(f"  {o.field} via {o.strategy} -> reported {o.reported or '(nothing)'}")
 
-    Path("out").mkdir(exist_ok=True)
-    Path("out/mutation_report.json").write_text(json.dumps({
+    (ROOT / "out").mkdir(exist_ok=True)
+    (ROOT / "out" / "mutation_report.json").write_text(json.dumps({
         "hosts": len(clean), "injected": total, "caught": caught, "exact": exact,
         "control_failures": control_failures,
         "by_strategy": {k: {"caught": v[0], "total": v[1]} for k, v in sorted(by_field.items())},

@@ -15,7 +15,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from sdoc.classify import classify                              # noqa: E402
 from sdoc.documents import extract                              # noqa: E402
@@ -26,7 +27,7 @@ from sdoc.pipeline import run                                   # noqa: E402
 
 
 def main() -> int:
-    src = BundleMailSource("data")
+    src = BundleMailSource(ROOT / "data")
     emails = src.emails()
     results = run(src)
     by_id = {r.email_id: r for r in results}
@@ -108,8 +109,8 @@ def main() -> int:
     print(f"  drafts with a defect  : {sum(r.has_defect for r in comps)}")
     print(f"  defective / decided   : {sum(r.has_defect for r in comps) / len(decided):.1%}")
 
-    Path("out").mkdir(exist_ok=True)
-    Path("out/audit.json").write_text(json.dumps({
+    (ROOT / "out").mkdir(exist_ok=True)
+    (ROOT / "out" / "audit.json").write_text(json.dumps({
         "agreement_buckets": dict(buckets),
         "low_confidence": len(weak),
         "unmapped_labels": dict(unmapped.most_common(30)),

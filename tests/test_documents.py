@@ -1,5 +1,7 @@
 import pytest
 
+from conftest import DATA_DIR
+
 from sdoc.documents import DocType, Document, extract, identify
 from sdoc.mailsource import BundleMailSource
 
@@ -35,7 +37,7 @@ class TestRoleGuard:
 
 
 class TestExtractRealAttachments:
-    src = BundleMailSource("data")
+    src = BundleMailSource(DATA_DIR)
 
     def test_text_attachment(self):
         doc = extract(self.src, "attachments/email_001_SI.txt")

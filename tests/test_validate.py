@@ -2,9 +2,11 @@ import json
 
 import pytest
 
+from conftest import SAMPLE_SUBMISSION
+
 from sdoc.validate import validate
 
-SAMPLE = "data/sample_submission.json"
+SAMPLE = SAMPLE_SUBMISSION
 
 
 def ok_record(**over):
