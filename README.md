@@ -23,6 +23,14 @@ python eval/mutation.py
 python eval/audit.py
 ```
 
+```bash
+python ui/build.py
+```
+
+`ui/build.py` writes `out/ui/index.html` — a single self-contained page that
+opens by double-click and uploads to S3 unchanged. No server, no build
+tooling, no fetch at runtime.
+
 ## The problem
 
 A shipping documentation desk receives one inbox containing document checks,
@@ -108,6 +116,33 @@ source), `missing_attachment` 2.
 
 Defects found, by field: container count 17, port of discharge 14, gross
 weight 9, notify party 8, consignee 7, port of loading 7, shipper 7.
+
+## The workspace
+
+The unit on screen is a shipment, not an email, and the language is the desk's
+rather than the pipeline's — "needs correction", "needs a person", "clear".
+
+Three piles, so a clerk's job becomes working the middle one. Filter by status
+or consignee, search across consignee, OC number, port and vessel. Selecting a
+shipment shows its route, cargo, product and carrier, then the seven fields as
+the shipping instruction states them beside the draft, with conflicts
+highlighted and the source label under every value — so it is visible that the
+BL said `To the Order of` where the instruction said `Consignee`.
+
+"Show the lines it read" opens the raw source lines with their line numbers.
+That is the glass box, one click deep, out of the way until wanted.
+
+"Draft correction reply" produces a ready email quoting both values per
+conflicting field. Nothing is sent — the draft is shown, the clerk sends it.
+
+Escalations name their reason in plain language and say that the system stopped
+rather than guessed. Where a document could not be read there is no extracted
+consignee, so the row falls back to the email's own subject instead of
+presenting a nameless shipment.
+
+Everything renders from `out/results.json`. There is no backend, no database
+and no authentication, which is deliberate: one static file has no deployment
+that can fail during a demo.
 
 ## Testing and validation
 
@@ -315,6 +350,9 @@ src/sdoc/
   shipment.py     OC / booking reference threading
   pipeline.py     orchestration, submission and results output
   validate.py     submission shape and consistency checks
+ui/
+  index.html      the workspace, with a data placeholder
+  build.py        inlines results into out/ui/index.html
 tests/            124 tests
 eval/             mutation.py, audit.py
 docs/             assumptions.md
