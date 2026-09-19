@@ -13,7 +13,7 @@ from pathlib import Path
 from .classify import classify
 from .compare import Verdict, compare_documents
 from .documents import Document, extract
-from .fields import FIELDS, extract_fields
+from .fields import FIELDS, extract_context, extract_fields
 from .mailsource import Email, MailSource
 from .shipment import Refs, find_refs
 
@@ -67,10 +67,11 @@ def _shipment_facts(si: Document | None, bl: Document | None) -> dict:
     for doc in (si, bl):
         if doc is not None and doc.ok:
             fs = extract_fields(doc.text)
-            return {
+            facts = {
                 name: (fs.get(name).value if fs.get(name) else None)
                 for name in FIELDS
-            } | {"source": doc.role, "mode": "sea"}
+            }
+            return facts | extract_context(doc.text) | {"source": doc.role, "mode": "sea"}
     return {}
 
 
