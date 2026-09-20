@@ -111,7 +111,7 @@ class AgentUnavailable(RuntimeError):
     """Raised at startup so a misconfigured agent fails loudly, not silently."""
 
 
-GEMINI_MODEL = os.environ.get("SDOC_GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("SDOC_GEMINI_MODEL", "gemini-3.6-flash")
 GEMINI_ENDPOINT = os.environ.get(
     "SDOC_GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models"
 )
@@ -138,17 +138,36 @@ def _retry_after(exc) -> float | None:
         return None
 
 
+# Gemini 3.x spends tokens on hidden reasoning before it writes anything, and
+# that spend counts against maxOutputTokens. Below this the model can burn the
+# whole budget thinking and return a candidate with no `parts` at all, which
+# is indistinguishable from a genuine abstention. Measured: ~120 thinking
+# tokens for a one-word reply, so leave room for a real answer on top.
+GEMINI_MIN_OUTPUT_TOKENS = 512
+
+
 def _gemini_text(payload: dict) -> str:
     """Pull the reply text out of a generateContent response.
 
     Defensive on purpose: a blocked or empty candidate has no `parts`, and the
     resolver treats an empty string as an abstention rather than an error.
+
+    Truncation is the one case that must not look like an abstention. A
+    candidate cut off by MAX_TOKENS answered nothing because it ran out of
+    room, not because it had nothing to say, and silently scoring that as
+    "no opinion" would quietly drop real answers from the run.
     """
     for candidate in payload.get("candidates") or []:
         parts = (candidate.get("content") or {}).get("parts") or []
         text = "".join(p.get("text", "") for p in parts)
         if text:
             return text
+        if candidate.get("finishReason") == "MAX_TOKENS":
+            raise RuntimeError(
+                "gemini returned no text: the output budget was consumed by "
+                "reasoning tokens before any answer was written - raise "
+                "max_tokens for this call"
+            )
     return ""
 
 
@@ -184,7 +203,10 @@ class GeminiClient:
         body = json.dumps({
             "system_instruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0},
+            "generationConfig": {
+                "maxOutputTokens": max(max_tokens, GEMINI_MIN_OUTPUT_TOKENS),
+                "temperature": 0,
+            },
         }).encode("utf-8")
 
         last: Exception | None = None

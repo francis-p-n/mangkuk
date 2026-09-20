@@ -17,9 +17,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 # Load ROOT/.env into os.environ so API keys need not be exported by hand.
 # Optional: without python-dotenv the real environment still works as before.
+# override=True on purpose: a key left behind by an earlier `setx` outlives
+# the shell that set it, and a stale one silently shadowing the .env the user
+# just edited is a long debugging detour. The file on disk is the intent.
 try:
     from dotenv import load_dotenv
-    load_dotenv(ROOT / ".env")
+    load_dotenv(ROOT / ".env", override=True)
 except ImportError:
     pass
 
