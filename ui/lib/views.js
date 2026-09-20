@@ -12,6 +12,8 @@ window.SDOC.views = (function () {
   const WHY = () => V().reason || {};
   const TAG = () => V().status || {};
   const TONE = () => V().tone || {};
+  const BAND = () => V().band || {};
+  const BAND_WHY = () => V().band_blurb || {};
 
   function issue(s) {
     if (s.status === "MISMATCH") {
@@ -29,13 +31,17 @@ window.SDOC.views = (function () {
   // where the detail opens beside it).
   function row(s, { href, current } = {}) {
     const tone = TONE()[s.status] || "fine";
+    // The band replaces the status tag on a mismatch: "Needs fixing" is
+    // already obvious from the queue it is sitting in, and how urgently is
+    // the thing the reader does not know.
+    const badge = s.severity
+      ? `<span class="vis-tag band ${esc(s.severity)}">${esc(BAND()[s.severity] || s.severity)}</span>`
+      : `<span class="vis-tag ${tone}">${esc(TAG()[s.status] || s.status)}</span>`;
     const inner =
       `<span class="who">${esc(F.who(s))}</span>` +
       `<span class="where">${esc(s.oc_number || s.booking_ref || "no reference")}` +
       `${F.route(s.shipment) ? " · " + esc(F.route(s.shipment)) : ""}</span>` +
-      `<span class="issue ${tone}">` +
-      `<span class="vis-tag ${tone}">${esc(TAG()[s.status] || s.status)}</span>` +
-      `${esc(issue(s))}</span>`;
+      `<span class="issue ${tone}">${badge}${esc(issue(s))}</span>`;
     return href
       ? `<a class="row s-${tone}" href="${esc(href)}">${inner}</a>`
       : `<button type="button" class="row s-${tone}" data-id="${esc(s.email_id)}"` +
@@ -114,6 +120,10 @@ Best regards,`;
 
       <p class="verdict"><span class="tag ${tone}">${esc(TAG()[s.status] || s.status)}</span>
         <span>${esc(verdict)}</span></p>
+      ${s.severity ? `<p class="band-why ${esc(s.severity)}">
+        <b>${esc(BAND()[s.severity] || s.severity)}</b>
+        <span>The ${esc((NAMES()[s.severity_field] || s.severity_field).toLowerCase())
+          } is the worst of them: ${esc(s.severity_reason)}.</span></p>` : ""}
       ${F.cargo(sh) ? `<p class="cargo">${esc(F.cargo(sh))}</p>` : "<div style='height:14px'></div>"}
 
       ${s.status === "NEEDS_REVIEW" ? `<div class="callout">${esc(WHY()[s.review_reason] || s.review_reason)}, so nothing was guessed. Open the documents yourself and check.</div>` : ""}
@@ -148,5 +158,5 @@ Best regards,`;
     });
   }
 
-  return { issue, row, detail, bindDetail, email };
+  return { issue, row, detail, bindDetail, email, BAND, BAND_WHY };
 })();

@@ -30,6 +30,10 @@
 .jump { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 0 0 30px; }
 .jump input { min-width: 260px; flex: 1 1 260px; }
 .allclear { padding: 28px 22px; text-align: center; color: var(--ink-soft); }
+.bandbar { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: -4px 0 12px; font-size: 14.5px; }
+.bandbar span { color: var(--ink-soft); }
+.bandbar b { font-variant-numeric: tabular-nums; }
+.bandbar .critical b { color: var(--fix); }
 </style>
 </head>
 <body>
@@ -61,6 +65,7 @@
         <span class="count fix num" id="fix-count"></span>
         <a class="more" id="fix-more" href="search.html?status=MISMATCH">See all</a>
       </div>
+      <p class="bandbar" id="bandbar"></p>
       <div class="card"><ul id="fix-list"></ul></div>
     </section>
 
@@ -121,6 +126,17 @@
 
   fill("fix-list", "fix-count", "fix-more", "MISMATCH");
   fill("look-list", "look-count", "look-more", "NEEDS_REVIEW");
+
+  // The queue arrives worst-first from the build, so the bar just names the
+  // bands it is already sorted by. Empty bands are left out rather than
+  // shown as zero: a pile with nothing in it is not news.
+  const words = (D.labels && D.labels.band) || {};
+  document.getElementById("bandbar").innerHTML = (D.bands || [])
+    .map(b => ({ name: b.name, consequence: b.consequence, n: (D.severity || {})[b.name] || 0 }))
+    .filter(b => b.n)
+    .map(b => `<span class="${b.name}"><b>${b.n}</b> ${
+      (words[b.name] || b.name).toLowerCase()} — ${b.consequence}</span>`)
+    .join("");
 
   document.getElementById("settled").innerHTML =
     `<b>${t.ok} drafts are fine.</b> <span>All seven details matched, so there is nothing to do.</span>` +

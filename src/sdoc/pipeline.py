@@ -16,6 +16,7 @@ from .documents import Document, extract
 from .fields import FIELDS, extract_context, extract_fields
 from .mailsource import Email, MailSource
 from .places import PlaceBook, country_from_address
+from .severity import assess
 from .shipment import Refs, find_refs
 
 
@@ -34,6 +35,10 @@ class EmailResult:
     oc_number: str | None = None
     booking_ref: str | None = None
     note: str = ""
+    # what the worst wrong field would cost, so a queue can be worked in order
+    severity: str | None = None
+    severity_field: str | None = None
+    severity_reason: str = ""
     documents: list[dict] = dc_field(default_factory=list)
     comparisons: list[dict] = dc_field(default_factory=list)
     shipment: dict = dc_field(default_factory=dict)
@@ -131,6 +136,11 @@ def process_email(
     result.has_defect = verdict.has_defect
     result.defect_fields = verdict.defect_fields
     result.note = verdict.note
+    worst = assess(verdict.defect_fields)
+    if worst:
+        result.severity = worst.band
+        result.severity_field = worst.field
+        result.severity_reason = worst.reason
     result.documents = [_doc_summary(si, "SI"), _doc_summary(bl, "BL")]
     result.comparisons = [asdict(c) for c in verdict.comparisons]
     result.shipment = _shipment_facts(si, bl)

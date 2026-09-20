@@ -21,6 +21,16 @@
   --fine: #1c6740;
   --fine-wash: #eaf4ee;
 
+  /* Severity bands. Critical borrows the mismatch red so the strongest
+     signal on the page stays one colour; serious gets its own amber;
+     routine is deliberately quiet, because most of the queue is routine. */
+  --sev-critical: #a8271f;
+  --sev-critical-wash: #fceceb;
+  --sev-serious: #85480a;      /* 5.42:1 on its wash */
+  --sev-serious-wash: #fbf0e0;
+  --sev-routine: #57534b;
+  --sev-routine-wash: #f2f1ed;
+
   --r: 8px;
   --r-lg: 14px;
   /* Segoe UI Variable is what Windows 11 itself uses, with real optical
@@ -53,6 +63,13 @@
     --look-rule: #2e4d68;
     --fine: #86cda1;
     --fine-wash: #15301e;
+
+    --sev-critical: #f0918a;
+    --sev-critical-wash: #341d1b;
+    --sev-serious: #e0a765;
+    --sev-serious-wash: #33240f;
+    --sev-routine: #aaa49b;
+    --sev-routine-wash: #26241f;
   }
 }
 * { box-sizing: border-box; }
@@ -147,6 +164,16 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .tag.look { background: var(--look-wash); color: var(--look); }
 .tag.fine { background: var(--fine-wash); color: var(--fine); }
 
+.band-why {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline;
+  margin: -6px 0 16px; padding: 11px 15px; border-radius: var(--r);
+  font-size: 14.5px; border-left: 3px solid currentColor;
+}
+.band-why span { color: var(--ink-soft); }
+.band-why.critical { background: var(--sev-critical-wash); color: var(--sev-critical); }
+.band-why.serious  { background: var(--sev-serious-wash);  color: var(--sev-serious); }
+.band-why.routine  { background: var(--sev-routine-wash);  color: var(--sev-routine); }
+
 .detail { padding: 26px 30px 28px; }
 .detail h2 { font-family: var(--ui-display); font-size: 21px; font-weight: 600; margin: 0 0 3px; letter-spacing: 0; }
 .detail .sub { color: var(--ink-faint); font-size: 13.5px; margin: 0 0 18px;
@@ -237,6 +264,11 @@ a:hover { text-decoration-thickness: 2px; }
 .vis-tag.fix { background: var(--fix-wash); color: var(--fix); }
 .vis-tag.look { background: var(--look-wash); color: var(--look); }
 .vis-tag.fine { background: var(--fine-wash); color: var(--fine); }
+/* The band says how urgent, where the status tag said only what. Both are
+   words first: the colour repeats the label, it never carries it alone. */
+.vis-tag.band.critical { background: var(--sev-critical-wash); color: var(--sev-critical); font-weight: 600; }
+.vis-tag.band.serious  { background: var(--sev-serious-wash);  color: var(--sev-serious); }
+.vis-tag.band.routine  { background: var(--sev-routine-wash);  color: var(--sev-routine); }
 .row .issue { display: flex; align-items: baseline; gap: 0; flex-wrap: wrap; }
 
 /* Rows are links on Today and buttons on Search; both must look identical. */

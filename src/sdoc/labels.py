@@ -45,6 +45,20 @@ REASON_LABELS: dict[str, str] = {
     "missing_value": "A detail is blank on the instruction",
 }
 
+# The severity bands from sdoc/severity.py, said the way a desk would say
+# them. The ranking lives there; only the wording lives here.
+BAND_LABELS: dict[str, str] = {
+    "critical": "Stop and fix first",
+    "serious": "Fix before release",
+    "routine": "Fix when you get to it",
+}
+
+BAND_BLURBS: dict[str, str] = {
+    "critical": "the wrong party could take the cargo",
+    "serious": "cargo could be misrouted, or the declaration refused",
+    "routine": "an amendment, a delay and a corrected invoice",
+}
+
 FIELD_LABELS: dict[str, str] = {
     "shipper": "Shipper",
     "consignee": "Consignee",
@@ -65,4 +79,6 @@ def as_payload() -> dict:
         "tone": STATUS_TONES,
         "reason": REASON_LABELS,
         "field": FIELD_LABELS,
+        "band": BAND_LABELS,
+        "band_blurb": BAND_BLURBS,
     }

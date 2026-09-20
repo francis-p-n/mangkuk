@@ -16,10 +16,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sdoc.labels import as_payload  # noqa: E402
+from sdoc.severity import BANDS, assess  # noqa: E402
 
 KEEP = (
     "email_id", "subject", "sender", "status", "review_reason", "has_defect",
     "defect_fields", "note", "oc_number", "booking_ref", "shipment", "comparisons",
+    "severity", "severity_field", "severity_reason",
 )
 
 
@@ -47,8 +49,16 @@ def main() -> int:
 
     results = json.loads(results_path.read_text(encoding="utf-8"))
     comparisons = [r for r in results if r["category"] == "BL_COMPARISON"]
+    # Worst first within the mismatches, so the queue is already in the order
+    # a person should work it. Severity is computed in sdoc/severity.py, not
+    # here, so the page and the pipeline cannot drift apart.
     order = {"MISMATCH": 0, "NEEDS_REVIEW": 1, "OK": 2}
-    comparisons.sort(key=lambda r: (order[r["status"]], r["email_id"]))
+
+    def rank(record):
+        found = assess(record.get("defect_fields") or [])
+        return found.sort_key if found else (99, 0)
+
+    comparisons.sort(key=lambda r: (order[r["status"]], *rank(r), r["email_id"]))
 
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
@@ -60,6 +70,11 @@ def main() -> int:
             "ok": sum(r["status"] == "OK" for r in comparisons),
         },
         "labels": as_payload(),
+        "bands": [{"name": n, "consequence": c} for n, _, c in BANDS],
+        "severity": {
+            name: sum(r.get("severity") == name for r in comparisons)
+            for name, _, _ in BANDS
+        },
         "shipments": [slim(r) for r in comparisons],
     }
 
