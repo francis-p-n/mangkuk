@@ -52,7 +52,11 @@ class Document:
     text: str = ""
     doc_type: DocType = DocType.UNKNOWN
     ok: bool = False
-    error: str | None = None        # "unreadable" | "empty"
+    # "unreadable" - the bytes arrived and could not be parsed.
+    # "fetch_failed" - the bytes never arrived. Not the same thing:
+    # one is a fact about the document, the other about the network,
+    # and only the first is a real answer.
+    error: str | None = None
 
     @property
     def expected_type(self) -> DocType:
@@ -125,6 +129,14 @@ def extract(source: MailSource, att_path: str) -> Document:
 
     try:
         raw = source.read_bytes(att_path)
+    except Exception:
+        # The document is not unreadable; we simply never saw it. Reporting
+        # this as "unreadable" would turn a network blip into a confident
+        # statement about a document, and quietly drop any defect in it.
+        doc.error = "fetch_failed"
+        return doc
+
+    try:
         if fmt == ".txt":
             doc.text = raw.decode("utf-8", errors="replace")
         elif fmt == ".xlsx":

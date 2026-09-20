@@ -66,4 +66,14 @@ class TestExtractRealAttachments:
 
     def test_missing_file_does_not_raise(self):
         doc = extract(self.src, "attachments/does_not_exist_SI.txt")
-        assert not doc.ok and doc.error == "unreadable"
+        assert not doc.ok
+
+    def test_a_document_that_never_arrived_is_not_called_unreadable(self):
+        """"Unreadable" is a statement about a document. Never having got the
+        bytes is a statement about the bundle or the network, and calling it
+        the first would turn a transport failure into a confident answer -
+        and quietly drop whatever defect the document held."""
+        gone = extract(self.src, "attachments/does_not_exist_SI.txt")
+        corrupt = extract(self.src, "attachments/email_513_SI.pdf")
+        assert gone.error == "fetch_failed"
+        assert corrupt.error == "unreadable"

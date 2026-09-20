@@ -35,6 +35,12 @@ def main() -> int:
              "requests with a missing attachment (see docs/assumptions.md)",
     )
     ap.add_argument(
+        "--submit", action="store_true",
+        help="POST the submission to the server named by --source and print "
+             "its reply. The only step that sends anything anywhere, so it "
+             "never happens unless asked for.",
+    )
+    ap.add_argument(
         "--learned", metavar="FILE",
         help="apply the desk's own corrections from an overrides file "
              "(see sdoc/learned.py); off by default, so the scored run stays "
@@ -69,9 +75,33 @@ def main() -> int:
         triage = TriageAgent(client, agent_stats)
         print(f"agent stage: {args.agent}\n")
 
-    results = run(open_source(args.source), args.chase_as_comparison,
-                  resolver, triage, learned)
+    source = open_source(args.source)
+
+    # Validate against the shape the server expects, not a local copy that may
+    # describe a different set of emails than the one being scored.
+    sample = args.sample
+    if hasattr(source, "sample_submission"):
+        try:
+            sample = source.sample_submission()
+            print(f"sample submission from the server: {len(sample)} emails\n")
+        except Exception as exc:
+            print(f"could not fetch the sample from the server ({exc});")
+            print(f"falling back to {args.sample}\n")
+
+    try:
+        results = run(source, args.chase_as_comparison, resolver, triage, learned)
+    except OSError as exc:
+        # Losing the listing is fatal - there is nothing to process - but it
+        # is an infrastructure problem, and a stack trace says that badly.
+        print(f"could not read the mailbox: {exc}")
+        print("check the server is up and --source is right.")
+        return 2
     sub_path, res_path = write_outputs(results, args.out)
+
+    # A document we never fetched is not a document we could not read, and a
+    # run that lost attachments must not be mistaken for a clean one.
+    unfetched = [(r.email_id, d["path"]) for r in results for d in r.documents
+                 if d.get("error") == "fetch_failed"]
 
     cats = collections.Counter(r.category for r in results)
     comps = [r for r in results if r.category == "BL_COMPARISON"]
@@ -108,7 +138,16 @@ def main() -> int:
         for note in agent_stats.notes[:5]:
             print(f"  note: {note}")
 
-    problems = validate(json.loads(sub_path.read_text(encoding="utf-8")), args.sample)
+    if unfetched:
+        print(f"\n{len(unfetched)} attachment(s) never arrived. Those checks are "
+              "reported as escalations, but the run is incomplete:\nany defect in "
+              "those documents was never seen. Re-run before trusting this.")
+        for email_id, path in unfetched[:10]:
+            print(f"  {email_id}  {path}")
+        if len(unfetched) > 10:
+            print(f"  ... and {len(unfetched) - 10} more")
+
+    problems = validate(json.loads(sub_path.read_text(encoding="utf-8")), sample)
     print()
     if problems:
         print(f"submission INVALID — {len(problems)} problem(s)")
@@ -117,7 +156,22 @@ def main() -> int:
         return 1
     print(f"submission valid -> {sub_path}")
     print(f"results          -> {res_path}")
-    return 0
+
+    if args.submit:
+        if not hasattr(source, "submit"):
+            print("\n--submit needs an HTTP source; point --source at the server")
+            return 2
+        print("\nsubmitting...")
+        try:
+            reply = source.submit(json.loads(sub_path.read_text(encoding="utf-8")))
+        except Exception as exc:
+            print(f"the server refused it: {type(exc).__name__}: {exc}")
+            return 1
+        print(json.dumps(reply, indent=2))
+
+    # A run that lost attachments exits non-zero, so a script cannot mistake
+    # it for a clean one even though the submission is structurally valid.
+    return 3 if unfetched else 0
 
 
 if __name__ == "__main__":

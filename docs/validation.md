@@ -7,10 +7,10 @@ Every number here is reproducible from the commands in the README.
 
 There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 309 tests, all passing
+### 1. Test suite — 324 tests, all passing
 
 ```
-309 passed in 4.81s
+324 passed in 13.38s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -28,6 +28,11 @@ The integration test runs the real bundle and pins 18 hand-verified cases —
 seven known defects with their exact field lists, three known-clean drafts, and
 eight known escalations. These are the guard against a normalization tweak
 quietly breaking a defect already being caught.
+
+`tests/test_http_source.py` runs against a real socket rather than a mock,
+because the failures that matter on the HTTP path are not in the documents:
+a server that stalls, a 503 in the middle of 260 requests, a hostname that
+resolves to a stack nothing is listening on.
 
 Two more suites pin judgements rather than behaviour. `tests/test_severity.py`
 asserts that the consequence ranking still says what an operations team was

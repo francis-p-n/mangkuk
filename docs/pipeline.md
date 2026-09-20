@@ -152,6 +152,37 @@ report also separates corrections the base rules could already handle — those
 are a missing rule in `normalize/` and should be fixed there — from the ones
 that are irreducible facts about two companies.
 
+### Reading from their server
+
+`--source http://host:8080` swaps `BundleMailSource` for `HttpMailSource`
+behind the same interface. A full run is one listing request plus one per
+attachment, around 260, and everything that matters here only shows up at
+that volume:
+
+- **A timeout on every request**, because a server that accepts a connection
+  and then stalls otherwise hangs the run forever with nothing to debug.
+- **Three attempts with a backoff.** One blip in 260 should not cost the run.
+  A 404 is an answer, not a blip, and is not retried.
+- **`localhost` is pinned once to whichever stack answers.** On Windows
+  `localhost` offers `::1` first; against a server bound only to IPv4 every
+  request pays the failed IPv6 attempt, about two seconds. Measured on the
+  supplied bundle that is the difference between a five-second run and a
+  nine-minute one, and the organizers' own instructions say
+  `http://localhost:8080`.
+- **A document that never arrived is not an unreadable document.** The first
+  is a fact about the network, the second about the document, and conflating
+  them turns a blip into a confident escalation that silently swallows
+  whatever defect the document held. A run that lost attachments names them
+  and exits 3, so no script mistakes it for a clean one.
+- **`--submit`** POSTs the submission and prints the reply. It is the only
+  step in the pipeline that sends anything anywhere, so it never happens
+  unless asked for. The sample submission is fetched from the server too:
+  against a hidden set, the local copy describes the wrong emails.
+
+`tools/fake_server.py` serves the local bundle over the same routes so this
+path can be rehearsed before the day, including the parts that are meant to
+go wrong: `--slow 3` to check the timeout, `--flaky 0.2` to check the retry.
+
 ## What it does today
 
 520 emails, end to end, in about a second.

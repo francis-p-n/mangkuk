@@ -11,10 +11,16 @@ REASONS = {"wrong_doc_type", "missing_attachment", "unreadable", "missing_value"
 REQUIRED_KEYS = {"category", "status", "review_reason", "defect_fields", "has_defect"}
 
 
-def validate(submission: dict, sample_path: str | Path) -> list[str]:
-    """Return a list of problems. Empty list means the file is submittable."""
+def validate(submission: dict, sample: dict | str | Path) -> list[str]:
+    """Return a list of problems. Empty list means the file is submittable.
+
+    `sample` is a path to the sample submission, or the sample itself - the
+    server hands one over directly, and against a hidden set that copy is the
+    only one describing the right emails.
+    """
     problems: list[str] = []
-    sample = json.loads(Path(sample_path).read_text(encoding="utf-8"))
+    if not isinstance(sample, dict):
+        sample = json.loads(Path(sample).read_text(encoding="utf-8"))
 
     missing = set(sample) - set(submission)
     extra = set(submission) - set(sample)

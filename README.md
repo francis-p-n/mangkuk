@@ -63,7 +63,7 @@ the document — never invent one. That restriction is enforced and tested.
 
 No ground truth ships with the bundle, so accuracy is established six ways.
 
-**1 — Test suite: 309 passing.** Every normalization rule, every label alias,
+**1 — Test suite: 324 passing.** Every normalization rule, every label alias,
 document identification across `.txt`/`.xlsx`/`.docx`/`.pdf`, all four
 escalation reasons and their precedence, the classifier, and submission
 validation. 18 cases are pinned after hand-reading both source documents: 7
@@ -179,12 +179,14 @@ dependencies.
 
 | Command | What it does |
 |---|---|
-| `python -m pytest tests -q` | 309 tests |
+| `python -m pytest tests -q` | 324 tests |
 | `python eval/mutation.py` | Inject defects, measure detection |
 | `python eval/desk_cases.py` | 31 real-world document quirks |
 | `python eval/audit.py` | Audit a run with no ground truth |
 | `python eval/score.py --truth gt.json` | Score against the organizers' truth |
 | `python run.py --source http://host:8080` | Run against their server |
+| `python run.py --source http://host:8080 --submit` | Run and POST it for scoring |
+| `python tools/fake_server.py` | Stand in for their server, to rehearse the HTTP path |
 | `python run.py --agent bedrock` | Turn the LLM recovery stage on |
 | `python run.py --learned overrides.json` | Apply the desk's own corrections |
 | `python tools/apply_overrides.py` | Report what the desk's corrections would change |
@@ -267,7 +269,7 @@ src/sdoc/
   places.py       one settled spelling per port
   labels.py       the shared vocabulary
   pipeline.py     orchestration
-tests/          309 tests
+tests/          324 tests
 eval/           mutation, desk cases, audit, scorer
 ui/             the site: pages, shared lib/, and its build
 tools/          data scrambler for public demos

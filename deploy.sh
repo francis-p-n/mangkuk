@@ -6,29 +6,53 @@
 # Needs the AWS CLI and credentials with s3:CreateBucket, s3:PutObject,
 # s3:PutBucketPolicy and s3:PutBucketWebsite.
 #
-# READ THIS FIRST: this makes the bucket publicly readable, and checks.html
+# READ THIS FIRST: this makes the bucket publicly readable, and data.js
 # carries the whole run inlined - consignee names, addresses, ports, weights
-# and OC numbers from the organizers' bundle. Anyone with the link, and any
-# crawler that finds it, can read all of it. That is normally fine for a
-# hackathon demo and not fine for client data. Decide deliberately.
+# and OC numbers. Anyone with the link, and any crawler that finds it, can
+# read all of it.
+#
+# So this defaults to out/site-demo, the scrambled build, and refuses to
+# publish the real one unless you say so:
+#
+#   ./deploy.sh my-bucket                     # scrambled demo  (safe)
+#   ./deploy.sh my-bucket ap-southeast-1 real # the real bundle (deliberate)
+#
+# Build the demo first with:
+#   python run.py && python tools/demo_data.py
+#   python ui/build.py --results out/results-demo.json --out out/site-demo
 set -euo pipefail
 
 BUCKET="${1:-}"
 REGION="${2:-ap-southeast-1}"
-SITE="$(cd "$(dirname "$0")" && pwd)/out/site"
+WHICH="${3:-demo}"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+case "$WHICH" in
+  demo) SITE="$HERE/out/site-demo" ;;
+  real) SITE="$HERE/out/site" ;;
+  *) echo "third argument must be 'demo' or 'real', not '$WHICH'" >&2; exit 64 ;;
+esac
 
 if [ -z "$BUCKET" ]; then
-  echo "usage: ./deploy.sh <bucket-name> [region]" >&2
+  echo "usage: ./deploy.sh <bucket-name> [region] [demo|real]" >&2
   exit 64
 fi
 if [ ! -f "$SITE/index.html" ]; then
-  echo "no site to deploy - run: python run.py && python ui/build.py" >&2
+  echo "no site at $SITE" >&2
+  echo "build it first - see the header of this script" >&2
   exit 66
+fi
+
+if [ "$WHICH" = "real" ]; then
+  echo "About to publish the REAL bundle - every consignee name, address and"
+  echo "OC number - to a world-readable bucket. Type 'publish real data' to go on."
+  read -r -p "> " CONFIRM
+  [ "$CONFIRM" = "publish real data" ] || { echo "stopped."; exit 1; }
 fi
 
 echo "account: $(aws sts get-caller-identity --query Account --output text)"
 echo "bucket : s3://$BUCKET  ($REGION)"
-echo "source : $SITE"
+echo "source : $SITE  [$WHICH]"
 echo
 
 if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
@@ -62,12 +86,12 @@ aws s3api put-bucket-website --bucket "$BUCKET" --website-configuration \
   '{"IndexDocument":{"Suffix":"index.html"},"ErrorDocument":{"Key":"index.html"}}'
 
 echo "uploading..."
-# The board is rebuilt on every run, so it must not be cached; the stylesheet
-# and the two static pages can be.
+# data.js is regenerated on every run, so it must not be cached; the pages,
+# the stylesheet and the shared modules can be.
 aws s3 sync "$SITE" "s3://$BUCKET" --delete \
-  --exclude "checks.html" --cache-control "public, max-age=300"
-aws s3 cp "$SITE/checks.html" "s3://$BUCKET/checks.html" \
-  --cache-control "no-cache" --content-type "text/html; charset=utf-8"
+  --exclude "data.js" --cache-control "public, max-age=300"
+aws s3 cp "$SITE/data.js" "s3://$BUCKET/data.js" \
+  --cache-control "no-cache" --content-type "application/javascript; charset=utf-8"
 
 URL="http://$BUCKET.s3-website-$REGION.amazonaws.com"
 [ "$REGION" = "us-east-1" ] && URL="http://$BUCKET.s3-website-us-east-1.amazonaws.com"
