@@ -6,6 +6,7 @@ uploads to S3 unchanged, which is one fewer thing to fail during a demo.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
@@ -33,7 +34,13 @@ def slim(record: dict) -> dict:
 
 
 def main() -> int:
-    results_path = ROOT / "out" / "results.json"
+    ap = argparse.ArgumentParser(description="assemble the static site")
+    ap.add_argument("--results", default=str(ROOT / "out" / "results.json"))
+    ap.add_argument("--out", default=str(ROOT / "out" / "site"),
+                    help="folder to write the site into")
+    args = ap.parse_args()
+
+    results_path = Path(args.results)
     if not results_path.exists():
         print("out/results.json not found - run `python run.py` first")
         return 1
@@ -57,7 +64,7 @@ def main() -> int:
     }
 
     ui = ROOT / "ui"
-    dest = ROOT / "out" / "site"
+    dest = Path(args.out)
     dest.mkdir(parents=True, exist_ok=True)
 
     # </script> inside the JSON would close the host tag early.

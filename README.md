@@ -105,6 +105,33 @@ all in the browser.
 | `checks.html` | The board, with the run's results inlined |
 | `app.css` | Shared styles |
 
+### The shareable build
+
+Anything published to the open internet is built from scrambled data:
+
+```bash
+python tools/demo_data.py
+python ui/build.py --results out/results-demo.json --out out/site-demo
+```
+
+`tools/demo_data.py` replaces every consignee, address, vessel, OC number,
+booking reference and email address with an invented equivalent. Two
+guarantees, both enforced rather than hoped for — it refuses to write the file
+if either fails:
+
+- **No verdict changes.** Substitution is one-to-one, so two companies never
+  merge and one never splits. The categories, statuses and defect fields are
+  identical to the real run.
+- **Nothing survives.** It re-reads its own output and aborts if any original
+  value is still present. 961 values replaced, 0 leaks, verified again against
+  the built page across party names, addresses, references, senders, vessels
+  and subject lines.
+
+Ports, commodities and the shipment structure stay real, so the demo still
+shows genuine port-code traps and reads like the job.
+
+### Publishing
+
 Publish it with `./deploy.sh <bucket-name> [region]`, which creates the
 bucket, turns on website hosting, and uploads the four files with sensible
 cache headers. It needs the AWS CLI and credentials.

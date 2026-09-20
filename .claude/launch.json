@@ -4,7 +4,7 @@
     {
       "name": "site",
       "runtimeExecutable": ".tools/python312/python.exe",
-      "runtimeArgs": ["-m", "http.server", "8777", "--directory", "out/site"],
+      "runtimeArgs": ["-m", "http.server", "8777", "--directory", "out/site-demo"],
       "port": 8777
     }
   ]
