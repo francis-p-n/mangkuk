@@ -4,7 +4,8 @@ import json
 import pytest
 
 from sdoc.agents import (
-    AgentStats, FieldResolver, NullClient, TriageAgent, _parse_json_object,
+    AgentStats, AgentUnavailable, FieldResolver, NullClient, TriageAgent,
+    _gemini_text, _parse_json_object, make_client,
 )
 from sdoc.compare import compare_documents
 from sdoc.documents import DocType, Document
@@ -241,3 +242,53 @@ class TestTriageAgent:
 
     def test_null_client_abstains(self):
         assert TriageAgent(NullClient(), AgentStats()).classify("x", "y") is None
+
+
+class TestProviders:
+    """Provider choice is a swap behind one method, and must fail loudly."""
+
+    def test_off_never_calls_out(self):
+        assert isinstance(make_client("off"), NullClient)
+
+    def test_an_unknown_provider_is_refused(self):
+        with pytest.raises(AgentUnavailable, match="unknown agent provider"):
+            make_client("gpt5")
+
+    def test_gemini_without_a_key_explains_itself(self, monkeypatch):
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+        with pytest.raises(AgentUnavailable, match="GEMINI_API_KEY"):
+            make_client("gemini")
+
+    def test_gemini_client_is_built_when_a_key_exists(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-real")
+        client = make_client("gemini")
+        assert client.model and hasattr(client, "complete")
+
+
+class TestGeminiResponseShape:
+    def test_reads_the_reply_text(self):
+        payload = {"candidates": [{"content": {"parts": [{"text": '{"a": 1}'}]}}]}
+        assert _gemini_text(payload) == '{"a": 1}'
+
+    def test_joins_several_parts(self):
+        payload = {"candidates": [{"content": {"parts": [{"text": "{"}, {"text": "}"}]}}]}
+        assert _gemini_text(payload) == "{}"
+
+    @pytest.mark.parametrize("payload", [
+        {},
+        {"candidates": []},
+        {"candidates": [{"finishReason": "SAFETY"}]},
+        {"candidates": [{"content": {}}]},
+        {"candidates": [{"content": {"parts": []}}]},
+    ])
+    def test_a_blocked_or_empty_reply_is_an_abstention(self, payload):
+        # Empty string reaches the resolver, which treats it as "found nothing".
+        assert _gemini_text(payload) == ""
+
+    def test_an_empty_reply_makes_the_resolver_abstain(self):
+        stats = AgentStats()
+        resolver = FieldResolver(FakeClient(_gemini_text({"candidates": []})), stats)
+        from sdoc.fields import extract_fields
+        fields = extract_fields(DOC)
+        assert resolver.resolve(DOC, fields, "si") == 0

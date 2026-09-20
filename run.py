@@ -34,7 +34,7 @@ def main() -> int:
              "requests with a missing attachment (see docs/assumptions.md)",
     )
     ap.add_argument(
-        "--agent", choices=("off", "bedrock", "anthropic"), default="off",
+        "--agent", choices=("off", "bedrock", "anthropic", "gemini"), default="off",
         help="run the LLM recovery stage before escalating (default: off)",
     )
     args = ap.parse_args()

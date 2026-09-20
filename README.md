@@ -165,9 +165,15 @@ emails, including the 91 draft-chasers discussed in
 [docs/assumptions.md](docs/assumptions.md), which it judges individually rather
 than by a blanket flag.
 
-Run it with `--agent bedrock` (Claude on Amazon Bedrock, so document text stays
-inside the tenant) or `--agent anthropic`. The default is `off`, which keeps
-the scored run fully deterministic and reproducible.
+Run it with `--agent bedrock` (Claude on Amazon Bedrock, so document text
+stays inside the tenant), `--agent anthropic`, or `--agent gemini`
+(`GEMINI_API_KEY`, model via `SDOC_GEMINI_MODEL`). The default is `off`, which
+keeps the scored run fully deterministic and reproducible.
+
+The provider is one method behind a protocol, so swapping it is a small class
+and nothing downstream changes. It matters less than it looks: the grounding
+checks mean a weaker or cheaper model cannot do damage, only abstain. Bedrock
+is the one to present, because it keeps document text inside the tenant.
 
 Two outputs. `out/submission.json` is the narrow shape the scorer wants.
 `out/results.json` carries everything a human needs — evidence lines, shipment
