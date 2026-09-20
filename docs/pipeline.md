@@ -18,7 +18,7 @@ Four stages. The fuzzy work and the decisive work are deliberately separated.
 in a small set of body templates, so paying a model to read them would be
 daft. The security banner and quoted reply chains are stripped before matching.
 
-**2. Extraction** — pull the seven fields out of each document. 66 distinct
+**2. Extraction** — pull the seven fields out of each document. 65 distinct
 labels appear across the corpus for these seven concepts, including
 `Gross Weight毛重(KGS)` and the compound `Notify Party/Intermediate Consignee`.
 Alignment is by meaning, never by header text. Every value keeps its source

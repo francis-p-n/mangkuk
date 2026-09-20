@@ -169,7 +169,7 @@ the organizers' hidden test set.
 
 The documents *are* valuable, just not as training data:
 
-- the 66 distinct field labels became the alias table in `fields/aliases.py`
+- the 65 distinct field labels became the alias table in `fields/aliases.py`
 - the label variants became unit tests, including the traps
 - the clean pairs became mutation hosts — 63 of them, 602 injected defects
 - the real values became `eval/desk_cases.py`, which is what found the

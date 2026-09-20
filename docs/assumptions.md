@@ -1,5 +1,8 @@
 # Assumptions, resolved and open
 
+The brief itself, and where each requirement is met, is in
+[requirements.md](requirements.md). This file covers what it leaves open.
+
 No ground truth ships with the bundle, so some decisions are judgement calls.
 Each one below is isolated behind a flag or a constant, so it can be flipped in
 one line once the organizers' scorer gives feedback.

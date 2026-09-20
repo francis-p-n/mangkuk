@@ -24,7 +24,7 @@ repetitive, and a missed detail means an amended bill and a delay.
   discharge port, container count, gross weight.
 - **Matches by meaning, not by label.** One document says `Port of Loading`,
   the other `Load Port`; one says `Consignee`, the other `To the Order of`.
-  66 distinct labels appear across the corpus for these seven concepts.
+  65 distinct labels appear across the corpus for these seven concepts.
 - **Catches the subtle traps**: a port name changed while its UN/LOCODE stayed
   the same, tonnes against kilograms, four containers where the instruction
   said three, a "bill of lading" that is really a packing list.
@@ -130,13 +130,22 @@ to the default — RPA billing notices, berthing reports, a time-off request.
 Those are the genuine judgement calls, and exactly the residue an LLM stage
 should own. Rules decide the remaining 88.7% at high confidence.
 
-**6 — The agent's guardrails are tested; the live call is not.** 39 tests drive
-the resolver and the provider wiring through a fake client: a grounded value is accepted, an invented
-company rejected, a genuine quote carrying a smuggled value rejected, an
-implausible weight rejected, malformed replies treated as abstention, and a
-hallucinating agent still escalates. **Not verified:** no live model call has
-been made, so the prompt's real behaviour is unmeasured. With the agent
-misconfigured the pipeline still produces an identical valid submission.
+**6 — The agent's guardrails are tested; the live call is not.** 61 tests drive
+the resolver, the provider wiring and the retry layer — through a fake client
+and, for the HTTP provider, a real local server. A grounded value is accepted,
+an invented company rejected, a genuine quote carrying a smuggled value
+rejected, an implausible weight rejected, malformed replies treated as
+abstention, and a hallucinating agent still escalates.
+
+A throttled call is counted apart from an answered one, because both leave the
+email to the rules and produce the same submission — so counting them together
+makes a rate-limited run look like a model that found nothing. Rehearsed
+against a server refusing every request: 64 of 64 calls unanswered, submission
+byte-identical to the deterministic run, and the run says so.
+
+**Not verified:** no live model call has been made, so the prompt's real
+behaviour is unmeasured. With the agent misconfigured the pipeline still
+produces an identical valid submission.
 
 ### Known limits
 
@@ -151,9 +160,10 @@ on four pieces of corpus evidence in [assumptions](docs/assumptions.md) and
 pinned by 14 tests in `tests/test_chasers.py`. `--chase-as-comparison` still
 flips them if the organizers' scorer disagrees.
 
-More: [validation](docs/validation.md) · [pipeline](docs/pipeline.md) ·
+More: [what the brief asks for](docs/requirements.md) ·
+[validation](docs/validation.md) · [pipeline](docs/pipeline.md) ·
 [the site](docs/site.md) · [architecture](docs/architecture.md) ·
-[business case](docs/business-case.md) · [open assumptions](docs/assumptions.md)
+[business case](docs/business-case.md) · [assumptions](docs/assumptions.md)
 
 ---
 
@@ -294,7 +304,8 @@ tests/          346 tests
 eval/           mutation, desk cases, audit, scorer
 ui/             the site: pages, shared lib/, and its build
 tools/          data scrambler for public demos
-docs/           validation, pipeline, architecture, business case, assumptions
+docs/           the brief and how it is met, validation, pipeline,
+                architecture, business case, assumptions
 data/           the supplied bundle
 ```
 
