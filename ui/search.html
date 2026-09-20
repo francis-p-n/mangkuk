@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Search shipments — Document checks</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23a34513'/><path d='M9 16.5l5 5 9-11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -85,8 +87,12 @@
   // The home page links in with a shipment, a status or a query already
   // chosen, so the two pages join up instead of starting over.
   const params = new URLSearchParams(location.search);
+  // A status from the URL has to be one we actually have a pill for, or the
+  // page opens with nothing selected, nothing listed, and no way to tell why.
+  const KNOWN = new Set(["all", "MISMATCH", "NEEDS_REVIEW", "OK"]);
+  const asked = params.get("status");
   const state = {
-    filter: params.get("status") || "all",
+    filter: KNOWN.has(asked) ? asked : "all",
     q: (params.get("q") || "").trim().toLowerCase(),
     picks: {},
     selected: params.get("id") || null,
@@ -152,7 +158,10 @@
     const list = document.getElementById("list");
     if (!rows.length) {
       list.innerHTML = '<p class="none">No shipments match your search or filters.</p>';
+      // The panel is labelled by this heading, so it has to exist even when
+      // there is nothing to show.
       document.getElementById("detail").innerHTML =
+        '<h2 id="shipment-name" class="sr-only">No shipment selected</h2>' +
         '<p class="none">Clear a filter to see shipments again.</p>';
       return;
     }

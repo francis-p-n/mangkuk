@@ -78,13 +78,13 @@ def main() -> int:
         encoding="utf-8")
 
     (dest / "lib").mkdir(exist_ok=True)
-    pages = ("index.html", "welcome.html", "home.html", "search.html", "app.css")
+    pages = ("index.html", "welcome.html", "home.html", "search.html",
+             "app.css", "favicon.svg")
     modules = ("lib/format.js", "lib/session.js", "lib/views.js")
     for name in pages + modules:
         (dest / name).write_text((ui / name).read_text(encoding="utf-8"), encoding="utf-8")
 
-    for name in ("index.html", "welcome.html", "home.html", "search.html",
-                 "app.css", "data.js", *modules):
+    for name in (*pages, "data.js", *modules):
         print(f"  {name:<16} {(dest / name).stat().st_size / 1024:7.0f} KB")
 
     print(f"\nwrote {dest}  ({len(payload['shipments'])} shipments)")
