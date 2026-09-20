@@ -58,10 +58,11 @@ separators (`243588` vs `243,588`) and ports where one side omits the
 UN/LOCODE. Every one was inspected by hand. The comparator is doing very
 little quiet work, which is the point.
 
-**Classifier residue.** 62 of 520 emails (11.9%) fall through every rule to the
-default. These are the genuine judgement calls — RPA billing notifications,
+**Classifier residue.** 59 of 520 emails (11.3%) fall through every rule to
+the default, and 91 more are the draft-chasers held at low confidence while
+that question is open - 150 in total (28.8%). These are the genuine judgement calls — RPA billing notifications,
 berthing reports, a time-off request — and they are precisely the residue an
-LLM stage should own. Rules handle 88.1% at high confidence.
+LLM stage should own. Rules decide the remaining 71.2% at high confidence.
 
 **Unmapped labels.** Every label in the corpus that maps to no field was
 reviewed. All are legitimately outside the seven — freight terms, HS codes,

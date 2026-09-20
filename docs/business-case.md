@@ -25,7 +25,7 @@ shows both values and the labels they came from, so the correction email
 writes itself and the clerk stays accountable for sending it. Nothing is
 auto-sent.
 
-**Adoption risk, handled.** The system never guesses. 11.9% of checks come back
+**Adoption risk, handled.** The system never guesses. 15.5% of checks come back
 as "a person needs to look at this, and here is exactly why". A tool that
 silently guessed on those would be abandoned the first time it was wrong on
 something expensive.
@@ -46,7 +46,7 @@ desk that turns 126 document checks into 25 decisions.
 ### Completing the build
 
 PDF extraction via Textract, which recovers the 15 unreadable checks. An LLM
-adjudicator on Bedrock for the 11.9% classifier residue and for extraction on
+adjudicator on Bedrock for the 28.8% classifier residue and for extraction on
 documents the rules cannot parse. Live Graph mailbox ingestion, replacing the
 bundle behind the existing `MailSource` interface. An Outlook add-in, so the
 verification appears beside the email the clerk is already reading rather than
