@@ -7,9 +7,9 @@
   --rule-firm: #cfccc4;
   --ink: #1a1917;
   --ink-soft: #57534b;
-  --ink-faint: #8a857b;
+  --ink-faint: #6f6a60;   /* 4.76:1 on the sunk surface */
 
-  --brand: #b8501a;
+  --brand: #a34513;       /* 5.44:1, and 6.14:1 under white */
   --brand-wash: #fbefe8;
 
   --fix: #a8271f;
@@ -40,7 +40,7 @@
     --rule-firm: #46464f;
     --ink: #f0eeeb;
     --ink-soft: #aaa49b;
-    --ink-faint: #7d7871;
+    --ink-faint: #9a948b;  /* 5.01:1 on the sunk surface */
 
     --brand: #e89056;
     --brand-wash: #2d1c11;
@@ -212,3 +212,66 @@ details[open] summary::before { transform: rotate(90deg); }
 .whoami #signedin { font-size: 14px; color: var(--ink-faint); margin-right: 4px; }
 .whoami .btn { font-size: 14px; padding: 6px 12px; text-decoration: none; display: inline-block; }
 @media (max-width: 640px) { .whoami { margin-left: 0; width: 100%; } }
+
+
+/* ---- accessibility and the split into Today / Search -------------------- */
+
+/* Keyboard users reach the content without tabbing the whole header. */
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 20;
+  background: var(--card); color: var(--ink); padding: 11px 16px;
+  border: 1px solid var(--brand); border-radius: 0 0 var(--r) 0;
+}
+.skip:focus { left: 0; }
+
+a { color: var(--brand); }
+a:hover { text-decoration-thickness: 2px; }
+.whoami .is-here { color: var(--ink); border-color: var(--rule-firm); background: var(--sunk); }
+.whoami .signedin { font-size: 14px; color: var(--ink-faint); margin-right: 4px; }
+
+/* Status is never colour alone: every row carries the words as well. */
+.vis-tag {
+  font-size: 12px; padding: 1px 8px; border-radius: 999px; margin-right: 8px;
+  white-space: nowrap;
+}
+.vis-tag.fix { background: var(--fix-wash); color: var(--fix); }
+.vis-tag.look { background: var(--look-wash); color: var(--look); }
+.vis-tag.fine { background: var(--fine-wash); color: var(--fine); }
+.row .issue { display: flex; align-items: baseline; gap: 0; flex-wrap: wrap; }
+
+/* Rows are links on Today and buttons on Search; both must look identical. */
+a.row { text-decoration: none; color: inherit; }
+a.row:hover { background: var(--sunk); }
+
+.pills { border: 0; padding: 0; margin: 0; display: flex; gap: 9px; flex-wrap: wrap; }
+/* The filter form stacks: a search box, then two rows of controls. The base
+   rule lets the search input grow, which in a column turns it into a tall
+   block, so its growth is switched off here. */
+form.tools { flex-direction: column; align-items: stretch; gap: 12px; }
+form.tools > input[type=search] { flex: 0 0 auto; width: 100%; max-width: 520px; }
+fieldset.tools { border: 0; padding: 0; margin: 0; flex-direction: row; width: 100%; }
+.picker select { min-width: 0; width: 100%; }
+.picker { flex: 1 1 190px; min-width: 0; max-width: 260px; }
+
+/* The result of each comparison in words, not only a tick. */
+.verdict-cell { white-space: nowrap; font-size: 13.5px; }
+.mark-bad { color: var(--fix); font-weight: 600; }
+.yes { color: var(--fine); }
+.dash { color: var(--ink-faint); }
+table th[scope="row"] { text-align: left; font-weight: 400; color: var(--ink-soft); width: 11em; }
+tr.bad th[scope="row"] {
+  background: var(--fix-wash); border-top: 1px solid var(--fix-rule);
+  border-left: 1px solid var(--fix-rule); border-radius: var(--r) 0 0 var(--r);
+  color: var(--fix); font-weight: 600; padding: 11px 12px; vertical-align: top;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* A seven-row, four-column comparison cannot shrink to a phone without
+   becoming unreadable, so it scrolls inside its own labelled region.
+   tabindex makes that reachable by keyboard, which a bare overflow is not. */
+.table-scroll { overflow-x: auto; }
+.table-scroll:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.table-scroll table { min-width: 420px; }

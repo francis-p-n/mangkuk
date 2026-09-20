@@ -98,12 +98,48 @@ python ui/build.py
 S3 unchanged. No server, no build tooling, no framework, no dependencies at
 all in the browser.
 
-| Page | What it is |
+| File | What it is |
 |---|---|
 | `index.html` | Sign in |
 | `welcome.html` | Four-step walkthrough, shown once |
-| `checks.html` | The board, with the run's results inlined |
+| `home.html` | **Today** — only what needs acting on |
+| `search.html` | Every shipment, with the filters |
+| `data.js` | The run's results, loaded by both signed-in pages |
+| `lib/format.js` | Turning stored values into the desk's words |
+| `lib/views.js` | The shipment row and the shipment panel |
+| `lib/session.js` | The front door and the header strip |
 | `app.css` | Shared styles |
+
+**Today carries no filters.** It answers one question — what needs me now —
+with two queues, the six most recent of each, and a line confirming the rest
+are fine. Everything else lives on Search, one click away, and the two pages
+join up: a row on Today links to `search.html?id=…`, and "See all" links to
+`search.html?status=…`.
+
+Each feature is its own module, so a shipment is drawn by one implementation
+wherever it appears. The data is written once as `data.js` rather than inlined
+into each page, which took the pages from 330 KB to 4–8 KB.
+
+### Accessibility
+
+Audited and fixed rather than assumed:
+
+- **Contrast.** Two tokens failed WCAG AA and were measured, not eyeballed:
+  muted text sat at 3.25:1 in light mode and 3.44:1 in dark against the sunk
+  surface, and the brand colour at 4.42:1. Now 4.76:1, 5.01:1 and 5.44:1.
+- **Colour is never the only signal.** Every row carries the status in words
+  beside the dot, and every comparison says "Matches", "Does not match" or
+  "Could not read" instead of a bare tick.
+- Skip link, `header`/`nav`/`main`/`section` landmarks, one `h1` per page and
+  headings in order.
+- The comparison table has a caption, `scope="col"` and `scope="row"`, and on
+  a narrow screen scrolls inside a labelled, keyboard-reachable region rather
+  than pushing the page sideways.
+- Result counts are announced through a live region; the shipment panel is
+  `aria-live="polite"`.
+- Decorative dots are `aria-hidden`; every control has a label; filters are
+  grouped in fieldsets with legends.
+- `prefers-reduced-motion` is honoured.
 
 ### The shareable build
 

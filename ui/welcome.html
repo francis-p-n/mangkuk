@@ -135,7 +135,7 @@ function finish() {
     // just read it should not be shown it again on arrival.
     localStorage.setItem("sdoc-intro-seen", "1");
   } catch (e) { /* fine without it */ }
-  location.href = "checks.html";
+  location.href = "home.html";
 }
 
 next.addEventListener("click", () => { i === STEPS.length - 1 ? finish() : (i++, draw()); });

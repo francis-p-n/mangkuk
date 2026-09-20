@@ -92,7 +92,7 @@ form.addEventListener("submit", e => {
     seen = localStorage.getItem("sdoc-walkthrough-done") === "1";
   } catch (e) { /* private window - the prototype still works, just not remembered */ }
 
-  location.href = seen ? "checks.html" : "welcome.html";
+  location.href = seen ? "home.html" : "welcome.html";
 });
 </script>
 </body>

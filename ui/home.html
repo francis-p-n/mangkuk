@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today — Document checks</title>
+<link rel="stylesheet" href="app.css">
+<style>
+.queue { margin: 0 0 34px; }
+.queue-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 12px; }
+.queue-head h2 { font-size: 18px; font-weight: 600; margin: 0; }
+.queue-head .count {
+  font-size: 14px; padding: 2px 10px; border-radius: 999px; font-variant-numeric: tabular-nums;
+}
+.queue-head .count.fix { background: var(--fix-wash); color: var(--fix); }
+.queue-head .count.look { background: var(--look-wash); color: var(--look); }
+.queue-head .more { margin-left: auto; font-size: 14.5px; }
+.queue ul { list-style: none; margin: 0; padding: 0; }
+.queue li + li .row { border-top: 1px solid var(--rule); }
+.queue .card { overflow: hidden; }
+.settled {
+  background: var(--fine-wash); border: 1px solid var(--rule); border-radius: var(--r-lg);
+  padding: 16px 20px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+}
+.settled b { color: var(--fine); font-size: 17px; }
+.settled span { color: var(--ink-soft); }
+.settled a { margin-left: auto; font-size: 14.5px; }
+.jump { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 0 0 30px; }
+.jump input { min-width: 260px; flex: 1 1 260px; }
+.allclear { padding: 28px 22px; text-align: center; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<a class="skip" href="#work">Skip to what needs doing</a>
+
+<div class="wrap">
+  <header class="titlerow">
+    <div>
+      <h1>Today</h1>
+      <p class="date" id="date"></p>
+    </div>
+    <nav class="whoami" id="whoami" aria-label="Account and sections"></nav>
+  </header>
+
+  <p class="headline" id="headline"></p>
+
+  <form class="jump" id="jump" role="search">
+    <label class="sr-only" for="q">Search every shipment</label>
+    <input type="search" id="q" name="q"
+           placeholder="Find a customer, OC number, port or vessel">
+    <button class="btn" type="submit">Search all
+      <span id="total" class="num"></span></button>
+  </form>
+
+  <main id="work">
+    <section class="queue" aria-labelledby="fix-heading">
+      <div class="queue-head">
+        <h2 id="fix-heading">Needs fixing</h2>
+        <span class="count fix num" id="fix-count"></span>
+        <a class="more" id="fix-more" href="search.html?status=MISMATCH">See all</a>
+      </div>
+      <div class="card"><ul id="fix-list"></ul></div>
+    </section>
+
+    <section class="queue" aria-labelledby="look-heading">
+      <div class="queue-head">
+        <h2 id="look-heading">Needs you to look</h2>
+        <span class="count look num" id="look-count"></span>
+        <a class="more" id="look-more" href="search.html?status=NEEDS_REVIEW">See all</a>
+      </div>
+      <div class="card"><ul id="look-list"></ul></div>
+    </section>
+
+    <p class="settled" id="settled"></p>
+  </main>
+
+  <p class="foot">Nothing here is sent automatically. You send every email yourself.</p>
+</div>
+
+<script src="lib/format.js"></script>
+<script src="lib/session.js"></script>
+<script src="lib/views.js"></script>
+<script src="data.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (!window.SDOC.session.require()) return;
+
+  const D = window.SDOC.data, V = window.SDOC.views;
+  const SHOWN = 6;   // a screenful; the rest is one click away
+
+  window.SDOC.session.mountHeader(document.getElementById("whoami"), { here: "home.html" });
+
+  const t = D.totals;
+  document.getElementById("date").textContent =
+    `${t.comparisons} drafts from ${t.emails} emails, checked ${D.generated_at.slice(0, 10)}.`;
+  document.getElementById("total").textContent = t.comparisons;
+
+  const needsWork = t.mismatch + t.review;
+  document.getElementById("headline").innerHTML = needsWork
+    ? `<b>${needsWork}</b> shipments need you today. The other <b class="fine">${t.ok}</b> match the instruction on every detail.`
+    : `Nothing needs you today. All <b class="fine">${t.ok}</b> drafts match their instruction.`;
+
+  function fill(listId, countId, moreId, status) {
+    const all = D.shipments.filter(s => s.status === status);
+    document.getElementById(countId).textContent = all.length;
+    const list = document.getElementById(listId);
+    const more = document.getElementById(moreId);
+    if (!all.length) {
+      list.innerHTML = '<li class="allclear">Nothing in this pile.</li>';
+      more.hidden = true;
+      return;
+    }
+    list.innerHTML = all.slice(0, SHOWN).map(s =>
+      `<li>${V.row(s, { href: "search.html?id=" + encodeURIComponent(s.email_id) })}</li>`
+    ).join("");
+    more.textContent = all.length > SHOWN ? `See all ${all.length}` : "Open the list";
+  }
+
+  fill("fix-list", "fix-count", "fix-more", "MISMATCH");
+  fill("look-list", "look-count", "look-more", "NEEDS_REVIEW");
+
+  document.getElementById("settled").innerHTML =
+    `<b>${t.ok} drafts are fine.</b> <span>All seven details matched, so there is nothing to do.</span>` +
+    `<a href="search.html?status=OK">Look anyway</a>`;
+
+  document.getElementById("jump").addEventListener("submit", e => {
+    e.preventDefault();
+    const q = document.getElementById("q").value.trim();
+    location.href = "search.html" + (q ? "?q=" + encodeURIComponent(q) : "");
+  });
+})();
+</script>
+</body>
+</html>
