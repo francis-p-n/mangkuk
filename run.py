@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from sdoc.agents import (                      # noqa: E402
-    AgentStats, AgentUnavailable, FieldResolver, TriageAgent, make_client,
+    MAX_RETRIES, AgentStats, AgentUnavailable, FieldResolver, TriageAgent,
+    make_client,
 )
 from sdoc.learned import Overrides                # noqa: E402
 from sdoc.mailsource import open_source          # noqa: E402
@@ -73,7 +74,12 @@ def main() -> int:
             return 2
         resolver = FieldResolver(client, agent_stats)
         triage = TriageAgent(client, agent_stats)
-        print(f"agent stage: {args.agent}\n")
+        # 72 sequential calls against the supplied bundle, and a free tier
+        # will throttle most of a minute away. Without a line per call the
+        # run looks hung, and the first thing anyone does to a hung run is
+        # kill it.
+        agent_stats.progress = lambda line: print(f"  {line}", flush=True)
+        print(f"agent stage: {args.agent}, up to {MAX_RETRIES} retries per call\n")
 
     source = open_source(args.source)
 
@@ -135,6 +141,20 @@ def main() -> int:
         print(f"  {agent_stats.rejected_implausible:4}  rejected - implausible for the field")
         print(f"  {agent_stats.triage_calls:4}  classifications requested"
               f" / {agent_stats.triage_accepted} accepted")
+
+        # The distinction the whole retry layer exists to preserve: a model
+        # that found nothing and a model that was never reached look the
+        # same in the output and need opposite responses.
+        if agent_stats.incomplete:
+            missed = agent_stats.rate_limited + agent_stats.failed
+            print(f"\n  {missed} of {agent_stats.calls} calls never got an answer"
+                  f" ({agent_stats.rate_limited} rate limited,"
+                  f" {agent_stats.failed} failed).")
+            print("  Those emails fell back to the rules, so the submission is")
+            print("  complete - but the agent stage is not, and nothing here says")
+            print("  anything about how well the prompts work. Slow the run down")
+            print("  (SDOC_MAX_RETRIES) or use a key with a higher limit, then")
+            print("  judge the prompts on a run that was actually answered.")
         for note in agent_stats.notes[:5]:
             print(f"  note: {note}")
 

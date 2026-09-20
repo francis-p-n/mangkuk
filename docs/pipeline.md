@@ -152,6 +152,33 @@ report also separates corrections the base rules could already handle — those
 are a missing rule in `normalize/` and should be fixed there — from the ones
 that are irreducible facts about two companies.
 
+### When the provider will not answer
+
+A full run asks the agent for 64 calls - one per classification the rules
+abstained on, one per document with fields the parsers could not find. On a
+free tier most of those come back 429, so being throttled is the expected
+case rather than the exceptional one.
+
+The Anthropic and Bedrock clients inherit the SDK's own retry policy, which
+already backs off on 429 and 5xx; the only change is raising its allowance
+(`SDOC_MAX_RETRIES`, default 5). Wrapping a second loop around it would
+multiply both the attempts and the waiting. Gemini goes over plain HTTPS with
+no SDK to inherit from, so it has the loop written out: it waits exactly as
+long as the server asks when `Retry-After` says, and otherwise backs off
+exponentially with jitter, so a burst of calls does not retry in lockstep and
+recreate the burst.
+
+What matters more than the retrying is the bookkeeping. **A call that was
+never answered is counted apart from one that answered with nothing.** Both
+leave the email to the rules and produce the same submission, so if they are
+counted together a throttled run reads as a model that found nothing - and
+the obvious response is to rewrite a prompt that never ran. The run reports
+`N of M calls never got an answer` and says the agent stage is incomplete.
+
+Rehearsed against a stand-in that throttles every request: 64 of 64 calls
+unanswered, a submission byte-identical to the deterministic run, and the
+report saying exactly that.
+
 ### Reading from their server
 
 `--source http://host:8080` swaps `BundleMailSource` for `HttpMailSource`

@@ -92,6 +92,25 @@ def main() -> int:
         "window.SDOC = window.SDOC || {};\nwindow.SDOC.data = " + blob + ";\n",
         encoding="utf-8")
 
+    # Deploy hosts guess what a project is by looking at it, and a repo with
+    # Python in it gets guessed as a Python app - Vercel hunts for a `Handler`
+    # and finds the one in tools/fake_server.py. This folder holds no code to
+    # run, so it says so explicitly rather than relying on the guess. It also
+    # keeps data.js uncacheable, since it is rewritten on every run.
+    (dest / "vercel.json").write_text(json.dumps({
+        "$schema": "https://openapi.vercel.sh/vercel.json",
+        "framework": None,
+        "buildCommand": None,
+        "installCommand": None,
+        "outputDirectory": ".",
+        "headers": [
+            {"source": "/data.js", "headers": [
+                {"key": "Cache-Control", "value": "no-cache"}]},
+            {"source": "/(.*)", "headers": [
+                {"key": "Cache-Control", "value": "public, max-age=300"}]},
+        ],
+    }, indent=2) + "\n", encoding="utf-8")
+
     (dest / "lib").mkdir(exist_ok=True)
     pages = ("index.html", "welcome.html", "home.html", "search.html",
              "learned.html", "app.css", "favicon.svg")
@@ -99,7 +118,7 @@ def main() -> int:
     for name in pages + modules:
         (dest / name).write_text((ui / name).read_text(encoding="utf-8"), encoding="utf-8")
 
-    for name in (*pages, "data.js", *modules):
+    for name in (*pages, "data.js", "vercel.json", *modules):
         print(f"  {name:<16} {(dest / name).stat().st_size / 1024:7.0f} KB")
 
     print(f"\nwrote {dest}  ({len(payload['shipments'])} shipments)")

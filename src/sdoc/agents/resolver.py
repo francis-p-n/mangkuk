@@ -9,7 +9,7 @@ so the email escalates exactly as if the agent had never run.
 from __future__ import annotations
 
 from ..fields import FIELDS, Extracted, FieldSet, plausible
-from .clients import NullClient
+from .clients import NullClient, RateLimited
 from .prompts import RESOLVER_SYSTEM
 from .replies import _parse_json_object, _squash
 from .stats import AgentStats
@@ -39,8 +39,18 @@ class FieldResolver:
         )
         try:
             raw = self.client.complete(RESOLVER_SYSTEM, user)
+        except RateLimited as exc:
+            # The fields stay missing and the email escalates, which is the
+            # same outcome as the agent being off - but it is silence, not a
+            # judgement, and the run says so at the end.
+            self.stats.rate_limited += 1
+            self.stats.notes.append(f"resolver: {exc}")
+            self.stats.say("rate limited")
+            return 0
         except Exception as exc:
+            self.stats.failed += 1
             self.stats.notes.append(f"resolver call failed: {type(exc).__name__}")
+            self.stats.say(f"failed ({type(exc).__name__})")
             return 0
 
         proposals = _parse_json_object(raw)
@@ -80,6 +90,8 @@ class FieldResolver:
             accepted += 1
 
         self.stats.fields_accepted += accepted
+        self.stats.say(f"{accepted} of {len(missing)} field(s) accepted"
+                       f" from the {doc_role or 'document'}")
         return accepted
 
 

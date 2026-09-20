@@ -7,11 +7,32 @@ from __future__ import annotations
 
 import json
 import os
+import random
+import time
 from typing import Protocol
 
 DEFAULT_MODEL = os.environ.get("SDOC_MODEL", "claude-opus-5")
 BEDROCK_MODEL = os.environ.get("SDOC_BEDROCK_MODEL", "anthropic.claude-opus-5")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+
+# A full run asks for one call per abstained classification and one per
+# document the parsers could not read - 72 against the supplied bundle. On a
+# free tier that is well past the per-minute allowance, so being rate limited
+# is the expected case, not the exceptional one.
+MAX_RETRIES = int(os.environ.get("SDOC_MAX_RETRIES", "5"))
+
+
+class RateLimited(RuntimeError):
+    """The provider never answered, because we asked too fast.
+
+    Kept apart from every other failure for the same reason a document that
+    never arrived is kept apart from one that could not be read: an answer of
+    "nothing" and no answer at all are different facts, and only the first is
+    the agent's opinion. Collapsing them makes a throttled run look like a
+    model that found nothing, which is the wrong thing to conclude and the
+    wrong thing to fix.
+    """
+
 
 class LLMClient(Protocol):
     def complete(self, system: str, user: str, max_tokens: int = 1024) -> str: ...
@@ -25,23 +46,33 @@ class NullClient:
 
 
 class AnthropicClient:
-    """First-party Claude API."""
+    """First-party Claude API.
 
-    def __init__(self, model: str = DEFAULT_MODEL):
+    The SDK already retries 429 and 5xx with exponential backoff, so the only
+    thing to do here is raise its allowance and let it do the waiting. Adding
+    our own loop on top would multiply the attempts and the delay.
+    """
+
+    def __init__(self, model: str = DEFAULT_MODEL, max_retries: int = MAX_RETRIES):
         import anthropic
 
-        self._client = anthropic.Anthropic()
+        self._client = anthropic.Anthropic(max_retries=max_retries)
+        self._errors = anthropic
         self.model = model
 
     def complete(self, system: str, user: str, max_tokens: int = 1024) -> str:
-        response = self._client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            system=system,
-            thinking={"type": "adaptive"},
-            output_config={"effort": "low"},
-            messages=[{"role": "user", "content": user}],
-        )
+        try:
+            response = self._client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                system=system,
+                thinking={"type": "adaptive"},
+                output_config={"effort": "low"},
+                messages=[{"role": "user", "content": user}],
+            )
+        except self._errors.RateLimitError as exc:
+            # The SDK has already backed off and retried this far.
+            raise RateLimited(f"rate limited after {MAX_RETRIES} retries") from exc
         return "".join(b.text for b in response.content if b.type == "text")
 
 
@@ -52,21 +83,27 @@ class BedrockClient:
     InvokeModel — same messages surface as the first-party client.
     """
 
-    def __init__(self, model: str = BEDROCK_MODEL, region: str = AWS_REGION):
+    def __init__(self, model: str = BEDROCK_MODEL, region: str = AWS_REGION,
+                 max_retries: int = MAX_RETRIES):
+        import anthropic
         from anthropic import AnthropicBedrockMantle
 
-        self._client = AnthropicBedrockMantle(aws_region=region)
+        self._client = AnthropicBedrockMantle(aws_region=region, max_retries=max_retries)
+        self._errors = anthropic
         self.model = model
 
     def complete(self, system: str, user: str, max_tokens: int = 1024) -> str:
-        response = self._client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            system=system,
-            thinking={"type": "adaptive"},
-            output_config={"effort": "low"},
-            messages=[{"role": "user", "content": user}],
-        )
+        try:
+            response = self._client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                system=system,
+                thinking={"type": "adaptive"},
+                output_config={"effort": "low"},
+                messages=[{"role": "user", "content": user}],
+            )
+        except self._errors.RateLimitError as exc:
+            raise RateLimited(f"rate limited after {MAX_RETRIES} retries") from exc
         return "".join(b.text for b in response.content if b.type == "text")
 
 
@@ -78,6 +115,27 @@ GEMINI_MODEL = os.environ.get("SDOC_GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_ENDPOINT = os.environ.get(
     "SDOC_GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models"
 )
+
+
+def _retry_after(exc) -> float | None:
+    """How long the server asked us to wait, if it said.
+
+    Honoured rather than guessed: the server knows when the window resets and
+    a guess that is too short just burns another attempt against the limit.
+    """
+    raw = None
+    try:
+        raw = exc.headers.get("Retry-After")
+    except Exception:
+        return None
+    if not raw:
+        return None
+    try:
+        # Seconds is the only form these APIs send; an HTTP-date would need
+        # parsing and clock-skew handling for no practical gain.
+        return max(0.0, min(float(raw), 120.0))
+    except ValueError:
+        return None
 
 
 def _gemini_text(payload: dict) -> str:
@@ -112,6 +170,15 @@ class GeminiClient:
         self._key = key
 
     def complete(self, system: str, user: str, max_tokens: int = 1024) -> str:
+        """One call, retried on throttling and on transient server faults.
+
+        There is no SDK here to inherit a retry policy from, so this is the
+        one provider where the loop has to be written out. It waits as long
+        as the server asks when it says so, and backs off exponentially with
+        jitter when it does not - unsynchronised, so a burst of calls does
+        not retry in lockstep and re-create the burst.
+        """
+        import urllib.error
         import urllib.request
 
         body = json.dumps({
@@ -120,14 +187,35 @@ class GeminiClient:
             "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0},
         }).encode("utf-8")
 
-        request = urllib.request.Request(
-            self._url,
-            data=body,
-            headers={"Content-Type": "application/json", "x-goog-api-key": self._key},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=60) as response:
-            return _gemini_text(json.loads(response.read()))
+        last: Exception | None = None
+        for attempt in range(MAX_RETRIES + 1):
+            request = urllib.request.Request(
+                self._url,
+                data=body,
+                headers={"Content-Type": "application/json",
+                         "x-goog-api-key": self._key},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=60) as response:
+                    return _gemini_text(json.loads(response.read()))
+            except urllib.error.HTTPError as exc:
+                if exc.code != 429 and exc.code < 500:
+                    raise           # a bad key or a bad request; waiting will not help
+                last = exc
+                wait = _retry_after(exc) if exc.code == 429 else None
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                last = exc
+                wait = None
+
+            if attempt >= MAX_RETRIES:
+                break
+            if wait is None:
+                wait = min(2.0 ** attempt, 32.0) + random.uniform(0, 0.5)
+            time.sleep(wait)
+
+        raise RateLimited(
+            f"no answer after {MAX_RETRIES + 1} attempts: {last}") from last
 
 
 def make_client(provider: str) -> LLMClient:

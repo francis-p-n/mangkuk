@@ -63,7 +63,7 @@ the document — never invent one. That restriction is enforced and tested.
 
 No ground truth ships with the bundle, so accuracy is established six ways.
 
-**1 — Test suite: 324 passing.** Every normalization rule, every label alias,
+**1 — Test suite: 346 passing.** Every normalization rule, every label alias,
 document identification across `.txt`/`.xlsx`/`.docx`/`.pdf`, all four
 escalation reasons and their precedence, the classifier, and submission
 validation. 18 cases are pinned after hand-reading both source documents: 7
@@ -179,7 +179,7 @@ dependencies.
 
 | Command | What it does |
 |---|---|
-| `python -m pytest tests -q` | 324 tests |
+| `python -m pytest tests -q` | 346 tests |
 | `python eval/mutation.py` | Inject defects, measure detection |
 | `python eval/desk_cases.py` | 31 real-world document quirks |
 | `python eval/audit.py` | Audit a run with no ground truth |
@@ -197,6 +197,27 @@ dependencies.
 Agent providers: `bedrock` (keeps document text inside the tenant),
 `anthropic`, `gemini`. Default is `off`, so the scored run stays
 deterministic.
+
+Every call is retried with backoff, honouring `Retry-After`
+(`SDOC_MAX_RETRIES`, default 5). A call that is never answered is counted
+apart from one that answered with nothing, and the run says how many - a
+throttled run and a model that found nothing look identical otherwise, and
+need opposite fixes.
+
+### Publishing the demo
+
+Only `out/site-demo` — the scrambled build — is ever published.
+
+```bash
+python run.py && python tools/demo_data.py
+python ui/build.py --results out/results-demo.json --out out/site-demo
+vercel deploy --prod out/site-demo
+```
+
+Deploy the folder, not the repo: `out/` is gitignored, so a git-connected
+project sees no site at all, and scanning the repo makes Vercel read
+`tools/fake_server.py` as a Python entrypoint. The build writes a
+`vercel.json` beside the pages saying there is nothing to build.
 
 ---
 
@@ -269,7 +290,7 @@ src/sdoc/
   places.py       one settled spelling per port
   labels.py       the shared vocabulary
   pipeline.py     orchestration
-tests/          324 tests
+tests/          346 tests
 eval/           mutation, desk cases, audit, scorer
 ui/             the site: pages, shared lib/, and its build
 tools/          data scrambler for public demos

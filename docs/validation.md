@@ -7,10 +7,10 @@ Every number here is reproducible from the commands in the README.
 
 There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 324 tests, all passing
+### 1. Test suite — 346 tests, all passing
 
 ```
-324 passed in 13.38s
+346 passed in 17.78s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -28,6 +28,14 @@ The integration test runs the real bundle and pins 18 hand-verified cases —
 seven known defects with their exact field lists, three known-clean drafts, and
 eight known escalations. These are the guard against a normalization tweak
 quietly breaking a defect already being caught.
+
+`tests/test_agent_limits.py` covers the other half of that: what happens
+when a provider will not answer. A run asks for 64 calls against the bundle,
+and on a free tier most come back 429 - so the tests assert that a
+rate-limited call is counted as silence rather than as the model abstaining.
+Rehearsed end to end against a stand-in that throttles everything: 64 of 64
+calls unanswered, submission byte-identical to the deterministic run, and the
+run says so in as many words.
 
 `tests/test_http_source.py` runs against a real socket rather than a mock,
 because the failures that matter on the HTTP path are not in the documents:
