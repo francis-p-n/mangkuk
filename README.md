@@ -105,6 +105,16 @@ all in the browser.
 | `checks.html` | The board, with the run's results inlined |
 | `app.css` | Shared styles |
 
+Publish it with `./deploy.sh <bucket-name> [region]`, which creates the
+bucket, turns on website hosting, and uploads the four files with sensible
+cache headers. It needs the AWS CLI and credentials.
+
+Two things the script says out loud, worth repeating here. It makes the
+bucket **publicly readable**, and `checks.html` carries the whole run inlined
+— consignee names, addresses, ports, weights and OC numbers. Fine for a
+hackathon demo, not fine for client data. And S3 website endpoints are
+**HTTP only**; put CloudFront in front for `https://`.
+
 **The sign-in is a demo, and says so on the page.** It accepts any email and
 any password, checks nothing, and stores no password — it only remembers a
 display name for the session. The route guard on `checks.html` is a front
