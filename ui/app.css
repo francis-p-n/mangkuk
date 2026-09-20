@@ -23,7 +23,13 @@
 
   --r: 8px;
   --r-lg: 14px;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  /* Segoe UI Variable is what Windows 11 itself uses, with real optical
+     sizes; the rest of the stack matches each platform's own UI face. */
+  --ui: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont,
+        system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ui-display: "Segoe UI Variable Display", "Segoe UI Semibold", "Segoe UI",
+        -apple-system, BlinkMacSystemFont, system-ui, Roboto, Arial, sans-serif;
+  --mono: "Cascadia Mono", "Consolas", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -50,16 +56,20 @@
   }
 }
 * { box-sizing: border-box; }
+/* On html as well as body, so nothing inherits the browser's Times default. */
+html { font-family: var(--ui); }
 body {
   margin: 0; background: var(--paper); color: var(--ink);
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  font-family: var(--ui);
+  font-size: 15.5px; line-height: 1.6;
+  /* Reference numbers are read digit by digit, so they line up everywhere. */
+  font-variant-numeric: tabular-nums;
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; }
 .wrap { max-width: 1280px; margin: 0 auto; padding: 34px 22px 80px; }
 
-h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+h1 { font-family: var(--ui-display); font-size: 25px; font-weight: 600; margin: 0; letter-spacing: 0; }
 .date { color: var(--ink-faint); font-size: 15px; margin: 2px 0 20px; }
 .titlerow { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .titlerow .plain { margin-left: auto; }
@@ -68,7 +78,7 @@ h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 0; le
   background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--brand);
   border-radius: var(--r-lg); padding: 22px 26px 24px; margin: 0 0 26px; max-width: 58em;
 }
-.intro h2 { font-family: var(--serif); font-size: 21px; font-weight: 600; margin: 0 0 10px; }
+.intro h2 { font-family: var(--ui-display); font-size: 18px; font-weight: 600; margin: 0 0 10px; }
 .intro p { margin: 0 0 12px; max-width: 48em; }
 .intro ul { list-style: none; padding: 0; margin: 0 0 14px; }
 .intro li { position: relative; padding-left: 21px; margin-bottom: 9px; max-width: 48em; }
@@ -76,7 +86,7 @@ h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 0; le
 .intro li b { white-space: nowrap; }
 .intro .mind { color: var(--ink-soft); }
 .btn.plain { background: transparent; }
-.headline { font-size: 19px; line-height: 1.55; margin: 0 0 14px; max-width: 46em; }
+.headline { font-size: 17px; line-height: 1.6; margin: 0 0 14px; max-width: 46em; }
 .headline b { font-weight: 600; }
 .headline .fix { color: var(--fix); } .headline .look { color: var(--look); } .headline .fine { color: var(--fine); }
 
@@ -126,8 +136,9 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .row.s-fix { border-left-color: var(--fix-rule); }
 .row.s-look { border-left-color: var(--look-rule); }
 .row[aria-current="true"] { background: var(--brand-wash); border-left-color: var(--brand); }
-.row .who { font-weight: 600; font-size: 15.5px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row .where { font-size: 14px; color: var(--ink-faint); display: block; }
+.row .who { font-weight: 600; font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .where { font-size: 13px; color: var(--ink-faint); display: block;
+              font-family: var(--mono); letter-spacing: .01em; }
 .row .issue { font-size: 14px; margin-top: 4px; display: block; }
 .row .issue.fix { color: var(--fix); } .row .issue.look { color: var(--look); } .row .issue.fine { color: var(--ink-faint); }
 
@@ -137,12 +148,13 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .tag.fine { background: var(--fine-wash); color: var(--fine); }
 
 .detail { padding: 26px 30px 28px; }
-.detail h2 { font-family: var(--serif); font-size: 27px; font-weight: 600; margin: 0 0 3px; letter-spacing: -.01em; }
-.detail .sub { color: var(--ink-faint); font-size: 14.5px; margin: 0 0 18px; }
-.verdict { font-size: 18px; line-height: 1.5; margin: 0 0 6px; display: flex; gap: 11px; align-items: baseline; flex-wrap: wrap; }
-.cargo { font-size: 16px; color: var(--ink-soft); margin: 0 0 24px; max-width: 48em; }
+.detail h2 { font-family: var(--ui-display); font-size: 21px; font-weight: 600; margin: 0 0 3px; letter-spacing: 0; }
+.detail .sub { color: var(--ink-faint); font-size: 13.5px; margin: 0 0 18px;
+               font-family: var(--mono); letter-spacing: .01em; }
+.verdict { font-size: 16.5px; line-height: 1.5; margin: 0 0 6px; display: flex; gap: 11px; align-items: baseline; flex-wrap: wrap; }
+.cargo { font-size: 15px; color: var(--ink-soft); margin: 0 0 24px; max-width: 48em; }
 
-h3 { font-size: 16px; font-weight: 600; margin: 26px 0 10px; }
+h3 { font-size: 14px; font-weight: 600; margin: 24px 0 9px; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
 th { text-align: left; font-weight: 500; font-size: 14px; color: var(--ink-faint); padding: 0 12px 8px; }
 td { padding: 11px 12px; vertical-align: top; border-top: 1px solid var(--rule); }
@@ -164,7 +176,8 @@ details[open] summary::before { transform: rotate(90deg); }
 .quote p { margin: 0 0 12px; }
 .quote p:last-child { margin: 0; }
 .quote .doc { color: var(--ink-faint); font-size: 14px; }
-.quote .line { display: block; padding-left: 14px; border-left: 2px solid var(--rule-firm); margin-top: 3px; }
+.quote .line { display: block; padding-left: 14px; border-left: 2px solid var(--rule-firm);
+               margin-top: 3px; font-family: var(--mono); font-size: 13.5px; }
 
 .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--rule); }
 .btn { font: inherit; font-size: 15px; padding: 9px 17px; cursor: pointer;
@@ -174,7 +187,8 @@ details[open] summary::before { transform: rotate(90deg); }
 .btn.go:hover { filter: brightness(1.07); }
 .email { margin-top: 14px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--card); }
 .email .h { padding: 11px 16px; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--ink-faint); }
-.email pre { margin: 0; padding: 16px; font: inherit; font-size: 15px; white-space: pre-wrap; line-height: 1.6; }
+.email pre { margin: 0; padding: 16px; font-family: var(--mono); font-size: 13.5px;
+             white-space: pre-wrap; line-height: 1.65; }
 .after { font-size: 14.5px; color: var(--ink-faint); margin: 10px 0 0; }
 
 .callout { font-size: 16px; padding: 14px 16px; border-radius: var(--r); margin-bottom: 20px;
@@ -187,7 +201,7 @@ details[open] summary::before { transform: rotate(90deg); }
 @media (max-width: 640px) {
   .wrap { padding: 22px 16px 60px; }
   .detail { padding: 20px 18px; }
-  h1 { font-size: 25px; }
+  h1 { font-size: 22px; }
   /* Wrapped onto its own line, a right-aligned button reads as stranded. */
   .titlerow .plain { margin-left: 0; }
   .intro { padding: 18px 18px 20px; }
