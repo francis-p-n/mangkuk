@@ -34,8 +34,10 @@ COMPARISON_PHRASES = (
     "compare the si and the draft bl",
     "compare the shipping instruction and the draft bill of lading",
 )
-# Chasing a draft that has not arrived yet. Nothing to compare, so this is not
-# a comparison task — see docs/assumptions.md.
+# Chasing a draft that has not arrived yet: nothing has been attached because
+# nothing exists to attach. The discriminator against a genuine comparison
+# whose files went astray is the verb - these ask to *send*, those ask to
+# *compare* - and the two never overlap. See docs/assumptions.md.
 CHASE_PHRASES = ("assist to send the draft bl", "send the draft bl for")
 
 SI_PHRASES = (
@@ -90,11 +92,13 @@ def classify(
 ) -> Classification:
     """Classify one message.
 
-    `chase_as_comparison` decides the single biggest open question in this
-    corpus: 91 emails ask a counterparty to *send* a draft BL for checking and
-    carry no attachment. Either they are operational chasers (GENERAL), or they
-    are comparison requests that cannot proceed (BL_COMPARISON +
-    missing_attachment). See docs/assumptions.md — flip the flag to switch.
+    `chase_as_comparison` covers the largest classification call in this
+    corpus: 91 emails ask a counterparty to *send* a draft BL and carry no
+    attachment. They are filed as operational chasers (GENERAL) on four pieces
+    of corpus evidence set out in docs/assumptions.md and asserted in
+    tests/test_chasers.py. The flag flips them to BL_COMPARISON +
+    missing_attachment, and is kept only as insurance against the organizers'
+    scorer disagreeing.
     """
     subj = subject.lower()
     text = clean_body(body).lower()
@@ -111,8 +115,10 @@ def classify(
         return Classification("BL_COMPARISON", "comparison_phrase", 0.90)
     if any(p in text for p in CHASE_PHRASES):
         if chase_as_comparison:
-            return Classification("BL_COMPARISON", "chasing_draft_bl", 0.60)
-        return Classification("GENERAL", "chasing_draft_bl", 0.60)
+            return Classification("BL_COMPARISON", "chasing_draft_bl", 0.88)
+        # Held at low confidence until the evidence was in. It is now, so the
+        # agent no longer spends 91 calls second-guessing a settled rule.
+        return Classification("GENERAL", "chasing_draft_bl", 0.88)
 
     if any(p in text for p in SI_PHRASES) or any(s in subj for s in SI_SUBJECTS):
         return Classification("SI_REQUEST", "si_workflow", 0.92)

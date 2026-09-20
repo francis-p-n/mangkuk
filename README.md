@@ -54,7 +54,7 @@ the document — never invent one. That restriction is enforced and tested.
 
 No ground truth ships with the bundle, so accuracy is established six ways.
 
-**1 — Test suite: 249 passing.** Every normalization rule, every label alias,
+**1 — Test suite: 263 passing.** Every normalization rule, every label alias,
 document identification across `.txt`/`.xlsx`/`.docx`/`.pdf`, all four
 escalation reasons and their precedence, the classifier, and submission
 validation. 18 cases are pinned after hand-reading both source documents: 7
@@ -117,10 +117,9 @@ and it is pinned as a test. Getting there exposed two real defects:
 majority are byte-identical strings; normalization decides only a handful
 (thousands separators, a port missing its UN/LOCODE), and every one was
 inspected by hand. 59 of 520 emails (11.3%) fall through every classifier rule
-to the default, and a further 91 are the draft-chasers held deliberately at low
-confidence while that question is open — 150 in total (28.8%). Those are the
-genuine judgement calls, and exactly the residue an LLM stage should own. The
-remaining 71.2% are decided by rules at high confidence.
+to the default — RPA billing notices, berthing reports, a time-off request.
+Those are the genuine judgement calls, and exactly the residue an LLM stage
+should own. Rules decide the remaining 88.7% at high confidence.
 
 **6 — The agent's guardrails are tested; the live call is not.** 39 tests drive
 the resolver and the provider wiring through a fake client: a grounded value is accepted, an invented
@@ -137,9 +136,11 @@ marker not found` — and escalate as `unreadable`. OCR is the only route to
 those, and a declared-unreadable document is a correct answer where a
 hallucinated one is not.
 
-The largest open question is documented in
-[assumptions](docs/assumptions.md): 91 emails chasing a draft BL are
-classified as general mail, and `--chase-as-comparison` flips them.
+The largest classification call — 91 emails chasing a draft BL, filed as
+general mail rather than as comparisons missing their attachment — is settled
+on four pieces of corpus evidence in [assumptions](docs/assumptions.md) and
+pinned by 14 tests in `tests/test_chasers.py`. `--chase-as-comparison` still
+flips them if the organizers' scorer disagrees.
 
 More: [validation](docs/validation.md) · [pipeline](docs/pipeline.md) ·
 [the site](docs/site.md) · [architecture](docs/architecture.md) ·
@@ -169,7 +170,7 @@ dependencies.
 
 | Command | What it does |
 |---|---|
-| `python -m pytest tests -q` | 249 tests |
+| `python -m pytest tests -q` | 263 tests |
 | `python eval/mutation.py` | Inject defects, measure detection |
 | `python eval/desk_cases.py` | 31 real-world document quirks |
 | `python eval/audit.py` | Audit a run with no ground truth |
@@ -216,8 +217,8 @@ no combination comes back empty.
 ### Assumed, not measured
 
 Five minutes per manual check — worth confirming with the operations team. On
-that assumption these 129 checks are about 10.5 hours of desk time, against
-roughly 30 minutes reviewing pre-diagnosed escalations. The real value is the
+that assumption these 129 checks are about 11 hours of desk time, against
+roughly 40 minutes reviewing pre-diagnosed escalations. The real value is the
 46 wrong drafts caught before they reached a carrier.
 
 ---
@@ -236,7 +237,7 @@ src/sdoc/
   places.py       one settled spelling per port
   labels.py       the shared vocabulary
   pipeline.py     orchestration
-tests/          249 tests
+tests/          263 tests
 eval/           mutation, desk cases, audit, scorer
 ui/             the site: pages, shared lib/, and its build
 tools/          data scrambler for public demos

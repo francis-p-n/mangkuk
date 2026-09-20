@@ -62,10 +62,10 @@ This is what makes an LLM safe here. A model that invents `TOTALLY MADE UP
 TRADING LLC` produces a plausible-looking consignee, and a plausible-looking
 consignee on a bill of lading is worse than no answer at all.
 
-The same agent decides the classifications the rules abstain on — 153 of 520
-emails, including the 91 draft-chasers discussed in
-[docs/assumptions.md](assumptions.md), which it judges individually rather
-than by a blanket flag.
+The same agent decides the classifications the rules abstain on — 59 of 520
+emails, judged one at a time. The 91 draft-chasers are no longer among them:
+[docs/assumptions.md](assumptions.md) settles that question on corpus
+evidence, so a rule decides them and no tokens are spent.
 
 Run it with `--agent bedrock` (Claude on Amazon Bedrock, so document text
 stays inside the tenant), `--agent anthropic`, or `--agent gemini`

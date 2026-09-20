@@ -7,10 +7,10 @@ Every number here is reproducible from the commands in the README.
 
 There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 237 tests, all passing
+### 1. Test suite — 263 tests, all passing
 
 ```
-237 passed in 1.35s
+263 passed in 1.65s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -28,6 +28,13 @@ The integration test runs the real bundle and pins 18 hand-verified cases —
 seven known defects with their exact field lists, three known-clean drafts, and
 eight known escalations. These are the guard against a normalization tweak
 quietly breaking a defect already being caught.
+
+`tests/test_chasers.py` is a different kind of test: rather than pinning an
+output, its 14 assertions pin the *corpus evidence* behind the draft-chaser
+decision — that no chaser asks to compare, that all three hand-built
+zero-attachment cases do, that a chaser's booking reference appears nowhere
+else in 520 emails or any attachment. The argument in
+[docs/assumptions.md](assumptions.md) cannot quietly stop being true.
 
 ### 2. Defect injection — 602 injected, 100% caught
 
@@ -59,10 +66,14 @@ UN/LOCODE. Every one was inspected by hand. The comparator is doing very
 little quiet work, which is the point.
 
 **Classifier residue.** 59 of 520 emails (11.3%) fall through every rule to
-the default, and 91 more are the draft-chasers held at low confidence while
-that question is open - 150 in total (28.8%). These are the genuine judgement calls — RPA billing notifications,
-berthing reports, a time-off request — and they are precisely the residue an
-LLM stage should own. Rules decide the remaining 71.2% at high confidence.
+the default. These are the genuine judgement calls — RPA billing
+notifications, berthing reports, a time-off request — and they are precisely
+the residue an LLM stage should own. Rules decide the remaining 88.7% at high
+confidence.
+
+The 91 draft-chasers used to sit in this residue too, held at low confidence
+while the question was open. [docs/assumptions.md](assumptions.md) now settles
+it on corpus evidence, so a rule decides them and the agent is never asked.
 
 **Unmapped labels.** Every label in the corpus that maps to no field was
 reviewed. All are legitimately outside the seven — freight terms, HS codes,
@@ -97,9 +108,10 @@ checking stage at all. They are now `BL_COMPARISON` with
 
 Worth noting what this *did not* change: those three are a distinct template
 from the 91 draft-chasers in [docs/assumptions.md](assumptions.md). The
-organizers built exactly five `missing_attachment` cases, not ninety-six,
-which makes the case for leaving the chasers as general mail stronger than it
-was before.
+organizers built exactly five `missing_attachment` cases, not ninety-six —
+and three of those five carry no attachment at all, which is what makes them
+worth building. That became the first of the four arguments that settle the
+chaser question in [docs/assumptions.md](assumptions.md).
 
 ### 5. Clerk's-eye cases — 31 real-world variations, 0 missed
 
@@ -111,7 +123,7 @@ on a bill of lading.
 
 The first run passed 19 of 29 with **0 misses and 10 false alarms** — every
 one a case a clerk would wave through. Fixing them changed nothing about the
-bundle's results (still 63/48/15), which is the point: these were real-world
+bundle's results (still 63/46/20), which is the point: these were real-world
 robustness gaps, not bundle bugs.
 
 What it found, and what now works:
@@ -162,6 +174,6 @@ submission, which is the property that matters most for demo day.
 Five PDFs have no extractable text at all — a corrupt cluster that reports
 `EOF marker not found` — and escalate as `unreadable`. OCR is the only route
 to those, and a declared-unreadable document is a correct answer where a
-hallucinated one is not. The largest open question is documented in
-[docs/assumptions.md](assumptions.md) — 91 emails chasing a draft BL are
-currently GENERAL, and `--chase-as-comparison` flips them.
+hallucinated one is not. The largest classification call — 91 emails chasing
+a draft BL — is resolved in [docs/assumptions.md](assumptions.md) and pinned
+in `tests/test_chasers.py`; `--chase-as-comparison` still flips them.

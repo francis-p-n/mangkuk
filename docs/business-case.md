@@ -47,7 +47,7 @@ ready-to-send corrections.
 ### Completing the build
 
 PDF extraction via Textract, which recovers the 15 unreadable checks. An LLM
-adjudicator on Bedrock for the 28.8% classifier residue and for extraction on
+adjudicator on Bedrock for the 11.3% classifier residue and for extraction on
 documents the rules cannot parse. Live Graph mailbox ingestion, replacing the
 bundle behind the existing `MailSource` interface. An Outlook add-in, so the
 verification appears beside the email the clerk is already reading rather than
