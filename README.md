@@ -225,11 +225,27 @@ roughly 30 minutes reviewing pre-diagnosed escalations. The real value is the
 ## Layout
 
 ```
-src/sdoc/     the pipeline: mail source, extraction, comparison, agent
-tests/        249 tests
-eval/         mutation, desk cases, audit, scorer
-ui/           the site and its build
-tools/        data scrambler for public demos
-docs/         validation, pipeline, architecture, business case, assumptions
-data/         the supplied bundle
+src/sdoc/
+  mailsource.py   where email comes from (bundle, HTTP, a real mailbox)
+  documents.py    attachment text and document-type identification
+  fields/         getting the seven fields out, with evidence
+  normalize/      whether two values mean the same thing, one file per type
+  compare.py      verdicts and escalation precedence
+  classify.py     stage-1 triage
+  agents/         the LLM stage: clients, prompts, resolver, triage
+  places.py       one settled spelling per port
+  labels.py       the shared vocabulary
+  pipeline.py     orchestration
+tests/          249 tests
+eval/           mutation, desk cases, audit, scorer
+ui/             the site: pages, shared lib/, and its build
+tools/          data scrambler for public demos
+docs/           validation, pipeline, architecture, business case, assumptions
+data/           the supplied bundle
 ```
+
+`normalize/` and `fields/` and `agents/` are packages rather than single
+files: each has one module per thing that changes for its own reason — a
+field type, a reading pass, an LLM provider. Import paths are unchanged, so
+adding a provider or a compared field is a new file, not a new branch in a
+growing function.
