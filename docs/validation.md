@@ -140,7 +140,8 @@ The cases run as part of the suite, so none of this can silently regress.
 
 ### 6. The agent's guardrails are tested, the live call is not
 
-27 tests drive the resolver through a fake client: a grounded value is
+39 tests drive the resolver and the provider wiring through a fake client:
+a grounded value is
 accepted, an invented company is rejected, a genuine quote carrying a smuggled
 value is rejected, an implausible weight is rejected, a field the parser
 already found is never overwritten, malformed and empty replies are treated as
