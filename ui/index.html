@@ -3,613 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Document checks</title>
+<title>Sign in — Document checks</title>
+<link rel="stylesheet" href="app.css">
 <style>
-:root {
-  --paper: #fbfaf8;
-  --card: #ffffff;
-  --sunk: #f2f1ed;
-  --rule: #e5e3dd;
-  --rule-firm: #cfccc4;
-  --ink: #1a1917;
-  --ink-soft: #57534b;
-  --ink-faint: #8a857b;
-
-  --brand: #b8501a;
-  --brand-wash: #fbefe8;
-
-  --fix: #a8271f;
-  --fix-wash: #fceceb;
-  --fix-rule: #e4b2ad;
-  --look: #1d5688;
-  --look-wash: #eaf1f7;
-  --look-rule: #b6cde1;
-  --fine: #1c6740;
-  --fine-wash: #eaf4ee;
-
-  --r: 8px;
-  --r-lg: 14px;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+.gate { min-height: 100vh; display: grid; place-items: center; padding: 28px 20px; }
+.gate-card {
+  width: 100%; max-width: 420px; background: var(--card);
+  border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 32px 34px 28px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #141414;
-    --card: #1d1d1e;
-    --sunk: #26262a;
-    --rule: #32323a;
-    --rule-firm: #46464f;
-    --ink: #f0eeeb;
-    --ink-soft: #aaa49b;
-    --ink-faint: #7d7871;
-
-    --brand: #e89056;
-    --brand-wash: #2d1c11;
-
-    --fix: #f0918a;
-    --fix-wash: #341d1b;
-    --fix-rule: #6b3834;
-    --look: #84b5e1;
-    --look-wash: #152634;
-    --look-rule: #2e4d68;
-    --fine: #86cda1;
-    --fine-wash: #15301e;
-  }
+.gate h1 { font-size: 26px; margin: 0 0 4px; }
+.gate .lede { color: var(--ink-soft); font-size: 15px; margin: 0 0 24px; }
+.field { display: block; margin-bottom: 15px; }
+.field span { display: block; font-size: 14px; color: var(--ink-soft); margin-bottom: 5px; }
+.field input {
+  width: 100%; font: inherit; font-size: 15px; padding: 10px 13px; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--rule-firm); border-radius: var(--r);
 }
-* { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--paper); color: var(--ink);
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+.field input:focus { border-color: var(--brand); }
+.gate .btn { width: 100%; padding: 11px; font-size: 15.5px; margin-top: 6px; }
+.err { color: var(--fix); font-size: 14px; margin: 0 0 12px; }
+.demo-note {
+  margin: 22px 0 0; padding: 13px 15px; border-radius: var(--r);
+  background: var(--look-wash); border: 1px solid var(--look-rule);
+  color: var(--look); font-size: 14px; line-height: 1.55;
 }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.num { font-variant-numeric: tabular-nums; }
-.wrap { max-width: 1280px; margin: 0 auto; padding: 34px 22px 80px; }
-
-h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
-.date { color: var(--ink-faint); font-size: 15px; margin: 2px 0 20px; }
-.titlerow { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-.titlerow .plain { margin-left: auto; }
-
-.intro {
-  background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--brand);
-  border-radius: var(--r-lg); padding: 22px 26px 24px; margin: 0 0 26px; max-width: 58em;
-}
-.intro h2 { font-family: var(--serif); font-size: 21px; font-weight: 600; margin: 0 0 10px; }
-.intro p { margin: 0 0 12px; max-width: 48em; }
-.intro ul { list-style: none; padding: 0; margin: 0 0 14px; }
-.intro li { position: relative; padding-left: 21px; margin-bottom: 9px; max-width: 48em; }
-.intro li .dot { position: absolute; left: 0; top: .62em; }
-.intro li b { white-space: nowrap; }
-.intro .mind { color: var(--ink-soft); }
-.btn.plain { background: transparent; }
-.headline { font-size: 19px; line-height: 1.55; margin: 0 0 14px; max-width: 46em; }
-.headline b { font-weight: 600; }
-.headline .fix { color: var(--fix); } .headline .look { color: var(--look); } .headline .fine { color: var(--fine); }
-
-.bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--sunk); max-width: 46em; }
-.bar i { display: block; height: 100%; }
-.bar .fix { background: var(--fix); } .bar .look { background: var(--look); } .bar .fine { background: var(--fine); }
-
-.tools { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 26px 0 16px; }
-.tools.narrow { margin: 0 0 18px; gap: 12px; align-items: flex-end; }
-.picker { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--ink-faint); }
-.picker select { min-width: 190px; max-width: 260px; }
-#clearf { align-self: flex-end; }
-input[type=search], select {
-  font: inherit; font-size: 15px; padding: 9px 13px; color: var(--ink);
-  background: var(--card); border: 1px solid var(--rule-firm); border-radius: var(--r);
-}
-input[type=search] { min-width: 260px; flex: 1 1 260px; }
-.pill {
-  font: inherit; font-size: 14.5px; padding: 8px 16px; cursor: pointer;
-  background: var(--card); color: var(--ink-soft);
-  border: 1px solid var(--rule-firm); border-radius: 999px;
-  display: inline-flex; align-items: center; gap: 8px;
-}
-.pill:hover { background: var(--sunk); }
-.pill[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.pill .n { opacity: .7; font-size: 13px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-.dot.fix { background: var(--fix); } .dot.look { background: var(--look); } .dot.fine { background: var(--fine); }
-.pill[aria-pressed="true"] .dot { box-shadow: 0 0 0 1.5px var(--paper); }
-:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
-
-.cols { display: grid; grid-template-columns: minmax(320px, 380px) 1fr; gap: 22px; align-items: start; }
-/* Grid items default to min-width:auto, so the nowrap consignee name in a row
-   sets a floor wider than a phone screen and the page scrolls sideways. */
-.cols > * { min-width: 0; }
-.card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); }
-.list { max-height: 72vh; overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-lg); }
-.listtop { padding: 13px 17px 11px; border-bottom: 1px solid var(--rule); color: var(--ink-faint); font-size: 14px; }
-
-.row {
-  display: block; width: 100%; text-align: left; font: inherit; cursor: pointer;
-  background: none; border: 0; border-bottom: 1px solid var(--rule);
-  border-left: 4px solid transparent; padding: 13px 16px;
-}
-.row:last-child { border-bottom: 0; }
-.row:hover { background: var(--sunk); }
-.row.s-fix { border-left-color: var(--fix-rule); }
-.row.s-look { border-left-color: var(--look-rule); }
-.row[aria-current="true"] { background: var(--brand-wash); border-left-color: var(--brand); }
-.row .who { font-weight: 600; font-size: 15.5px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row .where { font-size: 14px; color: var(--ink-faint); display: block; }
-.row .issue { font-size: 14px; margin-top: 4px; display: block; }
-.row .issue.fix { color: var(--fix); } .row .issue.look { color: var(--look); } .row .issue.fine { color: var(--ink-faint); }
-
-.tag { font-size: 13px; padding: 3px 11px; border-radius: 999px; white-space: nowrap; display: inline-block; }
-.tag.fix { background: var(--fix-wash); color: var(--fix); }
-.tag.look { background: var(--look-wash); color: var(--look); }
-.tag.fine { background: var(--fine-wash); color: var(--fine); }
-
-.detail { padding: 26px 30px 28px; }
-.detail h2 { font-family: var(--serif); font-size: 27px; font-weight: 600; margin: 0 0 3px; letter-spacing: -.01em; }
-.detail .sub { color: var(--ink-faint); font-size: 14.5px; margin: 0 0 18px; }
-.verdict { font-size: 18px; line-height: 1.5; margin: 0 0 6px; display: flex; gap: 11px; align-items: baseline; flex-wrap: wrap; }
-.cargo { font-size: 16px; color: var(--ink-soft); margin: 0 0 24px; max-width: 48em; }
-
-h3 { font-size: 16px; font-weight: 600; margin: 26px 0 10px; }
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
-th { text-align: left; font-weight: 500; font-size: 14px; color: var(--ink-faint); padding: 0 12px 8px; }
-td { padding: 11px 12px; vertical-align: top; border-top: 1px solid var(--rule); }
-td:first-child { color: var(--ink-soft); width: 11em; }
-tr.bad td { background: var(--fix-wash); border-top-color: var(--fix-rule); color: var(--fix); }
-tr.bad td:first-child { border-left: 1px solid var(--fix-rule); border-radius: var(--r) 0 0 var(--r); color: var(--fix); font-weight: 600; }
-tr.bad td:last-child { border-right: 1px solid var(--fix-rule); border-radius: 0 var(--r) var(--r) 0; }
-.src { font-size: 13.5px; color: var(--ink-faint); display: block; }
-tr.bad .src { color: var(--fix); opacity: .8; }
-.yes { color: var(--fine); } .dash { color: var(--ink-faint); }
-.todo { margin: 8px 0 0; font-size: 15px; color: var(--fix); }
-
-details { border: 1px solid var(--rule); border-radius: var(--r); background: var(--sunk); }
-summary { cursor: pointer; padding: 11px 15px; font-size: 15px; color: var(--ink-soft); list-style: none; display: flex; gap: 9px; align-items: center; }
-summary::-webkit-details-marker { display: none; }
-summary::before { content: "\203A"; font-size: 17px; transition: transform .15s; display: inline-block; }
-details[open] summary::before { transform: rotate(90deg); }
-.quote { padding: 0 15px 14px; font-size: 15px; }
-.quote p { margin: 0 0 12px; }
-.quote p:last-child { margin: 0; }
-.quote .doc { color: var(--ink-faint); font-size: 14px; }
-.quote .line { display: block; padding-left: 14px; border-left: 2px solid var(--rule-firm); margin-top: 3px; }
-
-.buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--rule); }
-.btn { font: inherit; font-size: 15px; padding: 9px 17px; cursor: pointer;
-       background: var(--card); color: var(--ink); border: 1px solid var(--rule-firm); border-radius: var(--r); }
-.btn:hover { background: var(--sunk); }
-.btn.go { background: var(--brand); color: #fff; border-color: var(--brand); }
-.btn.go:hover { filter: brightness(1.07); }
-.email { margin-top: 14px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--card); }
-.email .h { padding: 11px 16px; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--ink-faint); }
-.email pre { margin: 0; padding: 16px; font: inherit; font-size: 15px; white-space: pre-wrap; line-height: 1.6; }
-.after { font-size: 14.5px; color: var(--ink-faint); margin: 10px 0 0; }
-
-.callout { font-size: 16px; padding: 14px 16px; border-radius: var(--r); margin-bottom: 20px;
-           background: var(--look-wash); color: var(--look); border: 1px solid var(--look-rule); }
-.nothing { color: var(--ink-soft); margin: 0; }
-.none { padding: 60px 26px; text-align: center; color: var(--ink-faint); }
-.foot { margin-top: 30px; font-size: 14px; color: var(--ink-faint); }
-
-@media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } .list { max-height: none; } }
-@media (max-width: 640px) {
-  .wrap { padding: 22px 16px 60px; }
-  .detail { padding: 20px 18px; }
-  h1 { font-size: 25px; }
-  /* Wrapped onto its own line, a right-aligned button reads as stranded. */
-  .titlerow .plain { margin-left: 0; }
-  .intro { padding: 18px 18px 20px; }
-}
+.gate footer { margin-top: 20px; font-size: 13.5px; color: var(--ink-faint); text-align: center; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h2 class="sr-only">Document checks: each draft bill of lading compared against the shipping instruction it came from, with a list of shipments and a field by field comparison of the selected one.</h2>
+<div class="gate">
+  <div class="gate-card">
+    <h1>Document checks</h1>
+    <p class="lede">Shipping documentation desk</p>
 
-  <div class="titlerow">
-    <div>
-      <h1>Document checks</h1>
-      <p class="date" id="date"></p>
-    </div>
-    <button class="btn plain" id="explain" aria-expanded="false">How this works</button>
+    <form id="signin" novalidate>
+      <p class="err" id="err" hidden></p>
+      <label class="field">
+        <span>Work email</span>
+        <input type="email" id="email" autocomplete="username"
+               placeholder="you@averis.com" required>
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn go" type="submit">Sign in</button>
+    </form>
+
+    <p class="demo-note">
+      <b>Demo sign-in.</b> This is a prototype: nothing is checked, nothing is
+      sent anywhere, and no password is stored. Enter any email and any
+      password to look around.
+    </p>
+
+    <footer>Averis hackathon prototype</footer>
   </div>
-
-  <section class="intro" id="intro" hidden>
-    <h2>What you are looking at</h2>
-    <p>When you send a carrier a <b>shipping instruction</b>, they send back a
-      <b>draft bill of lading</b> for you to approve. Somebody has to read both and check
-      they say the same thing. That is what this page has already done.</p>
-    <p>Seven details are compared on every shipment: the <b>shipper</b>, the
-      <b>consignee</b>, the <b>notify party</b>, the <b>loading port</b>, the
-      <b>discharge port</b>, how many <b>containers</b>, and the <b>gross weight</b>.</p>
-    <ul>
-      <li><i class="dot fix"></i><b>Needs fixing</b> &mdash; a detail on the draft does not
-        match your instruction. The wording from both documents is shown side by side so you
-        can see exactly what changed.</li>
-      <li><i class="dot look"></i><b>Needs you to look</b> &mdash; something stopped the check:
-        a missing attachment, a document that would not open, or the wrong document altogether.
-        Nothing is guessed when this happens.</li>
-      <li><i class="dot fine"></i><b>Fine</b> &mdash; all seven details match.</li>
-    </ul>
-    <p class="mind">No email is ever sent for you. When a draft needs fixing you can have the
-      correction written out, but you read it and send it from your own mailbox.</p>
-    <button class="btn" id="gotit">Got it</button>
-  </section>
-
-  <p class="headline" id="headline"></p>
-  <div class="bar" id="bar"></div>
-
-  <div class="tools">
-    <input type="search" id="q" placeholder="Search customer, country, OC number, port, vessel or cargo" aria-label="Search shipments">
-    <button class="pill" data-filter="all" aria-pressed="true">Everything</button>
-    <button class="pill" data-filter="MISMATCH" aria-pressed="false"><i class="dot fix"></i>Needs fixing</button>
-    <button class="pill" data-filter="NEEDS_REVIEW" aria-pressed="false"><i class="dot look"></i>Needs you to look</button>
-    <button class="pill" data-filter="OK" aria-pressed="false"><i class="dot fine"></i>Fine</button>
-  </div>
-
-  <div class="tools narrow" id="pickers">
-    <label class="picker">Customer
-      <select id="f-consignee" data-key="consignee"></select></label>
-    <label class="picker">Their country
-      <select id="f-country" data-key="consignee_country"></select></label>
-    <label class="picker">Shipping from
-      <select id="f-loading" data-key="loading_port"></select></label>
-    <label class="picker">Going to
-      <select id="f-discharge" data-key="discharge_port"></select></label>
-    <button class="btn plain" id="clearf" hidden>Clear filters</button>
-  </div>
-
-  <div class="cols">
-    <div class="card list-wrap">
-      <div class="listtop" id="listtop"></div>
-      <div class="list" id="list" role="listbox" aria-label="Shipments"></div>
-    </div>
-    <div class="card"><div class="detail" id="detail"></div></div>
-  </div>
-
-  <p class="foot" id="foot"></p>
 </div>
 
-<script id="sdoc-data" type="application/json">__SDOC_DATA__</script>
 <script>
-let DATA = null;
-try { DATA = JSON.parse(document.getElementById("sdoc-data").textContent); } catch (e) { DATA = null; }
+// A real deployment puts an identity provider in front of this page. Nothing
+// here authenticates anyone; it only remembers a display name so the rest of
+// the prototype has something to greet you with. The password is read to
+// validate the form and then goes out of scope - it is never stored or sent.
+const form = document.getElementById("signin");
+const err = document.getElementById("err");
 
-// One vocabulary for the whole system, written once in src/sdoc/labels.py and
-// travelling with the data. The fallbacks only matter if the page is opened
-// without a build.
-const V = (DATA && DATA.labels) || {};
-const NAMES = V.field || {
-  shipper: "Shipper", consignee: "Consignee", notify_party: "Notify party",
-  port_of_loading: "Loading port", port_of_discharge: "Discharge port",
-  container_count: "Containers", gross_weight_kg: "Gross weight"
-};
-const WHY = V.reason || {
-  wrong_doc_type: "The carrier sent the wrong kind of document",
-  missing_attachment: "One of the two documents is missing",
-  unreadable: "The attachment could not be opened",
-  missing_value: "A detail is blank on the instruction"
-};
-const TAG = V.status || { MISMATCH: "Needs fixing", NEEDS_REVIEW: "Needs you to look", OK: "Fine" };
-const TONE = V.tone || { MISMATCH: "fix", NEEDS_REVIEW: "look", OK: "fine" };
-
-// Which shipment fact each picker filters on, and what it is called on screen.
-const PICKERS = [
-  { key: "consignee", all: "Every customer" },
-  { key: "consignee_country", all: "Everywhere" },
-  { key: "loading_port", all: "Every export port" },
-  { key: "discharge_port", all: "Every destination" },
-];
-const BOX = { HC: "ft high-cube", GP: "ft standard", DV: "ft standard", DC: "ft standard",
-              RF: "ft reefer", FCL: "ft", OT: "ft open-top", FR: "ft flat-rack" };
-
-const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
-  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const KEEP_CAPS = new Set(["LLC", "FZ", "FZE", "FZCO", "LTD", "PTE", "PTY", "SDN", "BHD",
-  "INC", "CO", "SP", "BV", "NV", "AG", "SA", "PT", "UAB", "JSC", "PLC", "KPP", "3S", "USA", "UAE"]);
-const FIXES = { Gmbh: "GmbH" };
-const title = s => !s ? "" : String(s).toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase())
-  .split(/(\s|-|\/)/).map(w => FIXES[w] || (KEEP_CAPS.has(w.toUpperCase()) ? w.toUpperCase() : w)).join("");
-const cityOf = p => title(String(p).replace(/\s*\([A-Z]{5}\)/g, "").split(",")[0].trim());
-
-// Cut on a word boundary. A heading ending "PAPERONE DIGITA" looks broken.
-function clip(text, max) {
-  const s = String(text || "").replace(/\s*_\s*/g, " · ").replace(/\s+/g, " ").trim();
-  if (s.length <= max) return s;
-  const cut = s.slice(0, max);
-  const space = cut.lastIndexOf(" ");
-  return (space > max * 0.55 ? cut.slice(0, space) : cut).replace(/[\s·,.-]+$/, "") + "…";
-}
-// Named by the customer when we know them, by the email when we do not.
-const who = s => title(s.shipment.consignee) || clip(s.subject, 52) || s.email_id;
-
-// "6 x 40'HC" reads as "6 forty-foot high-cube containers" to the person doing the job.
-function plainBoxes(spec) {
-  const m = /(\d+)\s*[xX]\s*(\d+)\s*'?\s*([A-Za-z]+)?/.exec(spec || "");
-  if (!m) return spec || "";
-  const kind = BOX[(m[3] || "").toUpperCase()] || "ft";
-  return `${m[1]} × ${m[2]}${kind} container${m[1] === "1" ? "" : "s"}`;
-}
-const plainWeight = w => (w || "").replace(/\s*KGS?\b/i, " kg").trim();
-
-let state = { filter: "all", q: "", selected: null, picks: {} };
-
-function boot() {
-  if (!DATA || !DATA.shipments) {
-    document.getElementById("list").innerHTML =
-      '<div class="none">Nothing loaded yet. Run the check first.</div>';
-    return;
-  }
-  const t = DATA.totals;
-  document.getElementById("date").textContent =
-    `${t.comparisons} drafts from ${t.emails} emails, checked ${DATA.generated_at.slice(0, 10)}.`;
-  document.getElementById("headline").innerHTML =
-    `<b class="fix">${t.mismatch}</b> drafts have something that needs fixing before they go back to the carrier. ` +
-    `<b class="look">${t.review}</b> need you to look at them yourself. ` +
-    `The other <b class="fine">${t.ok}</b> match the instruction on every detail.`;
-  const pct = v => (v / (t.comparisons || 1) * 100).toFixed(2) + "%";
-  document.getElementById("bar").innerHTML =
-    `<i class="fix" style="width:${pct(t.mismatch)}"></i><i class="look" style="width:${pct(t.review)}"></i><i class="fine" style="width:${pct(t.ok)}"></i>`;
-  document.getElementById("foot").textContent =
-    "Nothing here is sent automatically. You send every email yourself.";
-  wire(); wireIntro(); render();
+function fail(message, focus) {
+  err.textContent = message;
+  err.hidden = false;
+  if (focus) focus.focus();
 }
 
-// Open on a first visit, remembered afterwards. Browser storage can be blocked
-// or wiped, so every read and write is guarded and the page works without it.
-function wireIntro() {
-  const panel = document.getElementById("intro");
-  const toggle = document.getElementById("explain");
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  err.hidden = true;
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  if (!email) return fail("Enter your work email to continue.", document.getElementById("email"));
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return fail("That does not look like an email address.", document.getElementById("email"));
+  if (!password) return fail("Enter any password - this is a demo.", document.getElementById("password"));
+
   let seen = false;
-  try { seen = localStorage.getItem("sdoc-intro-seen") === "1"; } catch (e) { seen = false; }
+  try {
+    sessionStorage.setItem("sdoc-user", email);
+    seen = localStorage.getItem("sdoc-walkthrough-done") === "1";
+  } catch (e) { /* private window - the prototype still works, just not remembered */ }
 
-  const show = open => {
-    panel.hidden = !open;
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.textContent = open ? "Hide this" : "How this works";
-  };
-  show(!seen);
-
-  toggle.addEventListener("click", () => show(panel.hidden));
-  document.getElementById("gotit").addEventListener("click", () => {
-    show(false);
-    try { localStorage.setItem("sdoc-intro-seen", "1"); } catch (e) { /* fine without it */ }
-    toggle.focus();
-  });
-}
-
-// Each picker lists only what is still reachable given the other choices, so
-// no combination ever comes back empty.
-function refreshPickers() {
-  let anyPicked = false;
-  for (const { key, all } of PICKERS) {
-    const others = matching({ ignore: key });
-    const counts = new Map();
-    for (const s of others) {
-      const v = s.shipment[key];
-      if (v) counts.set(v, (counts.get(v) || 0) + 1);
-    }
-    const chosen = state.picks[key] || "";
-    if (chosen) anyPicked = true;
-    // Keep a chosen value listed even if the other filters would hide it.
-    if (chosen && !counts.has(chosen)) counts.set(chosen, 0);
-
-    const label = v => key === "consignee" ? title(v) : v;
-    const opts = [...counts.entries()].sort((a, b) => label(a[0]).localeCompare(label(b[0])))
-      .map(([v, n]) => `<option value="${esc(v)}"${v === chosen ? " selected" : ""}>${
-        esc(label(v))}${n ? ` (${n})` : ""}</option>`).join("");
-    const el = document.querySelector(`[data-key="${key}"]`);
-    el.innerHTML = `<option value="">${all}</option>${opts}`;
-    el.value = chosen;
-  }
-  document.getElementById("clearf").hidden = !anyPicked && !state.q && state.filter === "all";
-}
-
-function wire() {
-  const counts = { all: DATA.shipments.length };
-  for (const s of DATA.shipments) counts[s.status] = (counts[s.status] || 0) + 1;
-  document.querySelectorAll(".pill").forEach(b => {
-    b.insertAdjacentHTML("beforeend", `<span class="n num">${counts[b.dataset.filter] || 0}</span>`);
-    b.addEventListener("click", () => {
-      state.filter = b.dataset.filter;
-      document.querySelectorAll(".pill").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-      render();
-    });
-  });
-  for (const { key } of PICKERS) {
-    document.querySelector(`[data-key="${key}"]`).addEventListener("change", e => {
-      state.picks[key] = e.target.value; render();
-    });
-  }
-  document.getElementById("clearf").addEventListener("click", () => {
-    state.picks = {}; state.q = ""; state.filter = "all";
-    document.getElementById("q").value = "";
-    document.querySelectorAll(".pill").forEach(x =>
-      x.setAttribute("aria-pressed", String(x.dataset.filter === "all")));
-    render();
-  });
-  document.getElementById("q").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); render(); });
-  document.getElementById("list").addEventListener("keydown", e => {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    e.preventDefault();
-    const rows = [...document.querySelectorAll(".row")];
-    const i = rows.findIndex(r => r.dataset.id === state.selected);
-    const next = rows[Math.min(rows.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))];
-    if (next) { state.selected = next.dataset.id; render(); next.focus(); }
-  });
-}
-
-function matching({ ignore } = {}) {
-  return DATA.shipments.filter(s => {
-    if (state.filter !== "all" && s.status !== state.filter) return false;
-    for (const { key } of PICKERS) {
-      if (key === ignore) continue;
-      const want = state.picks[key];
-      if (want && s.shipment[key] !== want) return false;
-    }
-    if (state.q) {
-      const hay = [s.shipment.consignee, s.shipment.consignee_country,
-        s.shipment.consignee_address, s.oc_number, s.booking_ref, s.subject,
-        s.shipment.discharge_port, s.shipment.loading_port,
-        s.shipment.vessel, s.shipment.commodity].join(" ").toLowerCase();
-      if (!hay.includes(state.q)) return false;
-    }
-    return true;
-  });
-}
-
-const visible = () => matching();
-
-function issueLine(s) {
-  if (s.status === "MISMATCH") {
-    const names = s.defect_fields.map(f => NAMES[f].toLowerCase());
-    const list = names.length === 1 ? names[0]
-      : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
-    return `${list.charAt(0).toUpperCase() + list.slice(1)} ${names.length === 1 ? "does" : "do"} not match`;
-  }
-  if (s.status === "NEEDS_REVIEW") return WHY[s.review_reason] || s.review_reason;
-  return "Everything matches";
-}
-
-function render() {
-  const rows = visible();
-  refreshPickers();
-  document.getElementById("listtop").textContent = rows.length === DATA.shipments.length
-    ? `${rows.length} shipments` : `${rows.length} of ${DATA.shipments.length} shipments`;
-  const list = document.getElementById("list");
-  if (!rows.length) {
-    list.innerHTML = '<div class="none">No shipments match your search or filters.</div>';
-    document.getElementById("detail").innerHTML = '<div class="none">Clear a filter to see shipments again.</div>';
-    return;
-  }
-  if (!state.selected || !rows.some(r => r.email_id === state.selected)) state.selected = rows[0].email_id;
-  list.innerHTML = rows.map(rowHtml).join("");
-  list.querySelectorAll(".row").forEach(el =>
-    el.addEventListener("click", () => { state.selected = el.dataset.id; render(); }));
-  renderDetail(rows.find(r => r.email_id === state.selected));
-}
-
-function rowHtml(s) {
-  const tone = TONE[s.status];
-  const route = [s.shipment.port_of_loading, s.shipment.port_of_discharge]
-    .filter(Boolean).map(cityOf).join(" to ");
-  return `<button class="row s-${tone}" role="option" data-id="${esc(s.email_id)}"
-      aria-selected="${s.email_id === state.selected}" aria-current="${s.email_id === state.selected}">
-    <span class="who">${esc(who(s))}</span>
-    <span class="where num">${esc(s.oc_number || s.booking_ref || "no reference")}${route ? " · " + esc(route) : ""}</span>
-    <span class="issue ${tone}">${esc(issueLine(s))}</span>
-  </button>`;
-}
-
-function cargoLine(sh) {
-  const bits = [];
-  if (sh.container_count) {
-    let c = plainBoxes(sh.container_count);
-    if (sh.gross_weight_kg) c += `, ${plainWeight(sh.gross_weight_kg)}`;
-    if (sh.commodity) c += ` of ${title(sh.commodity)}`;
-    bits.push(c + ".");
-  } else if (sh.commodity) bits.push(title(sh.commodity) + ".");
-  const from = sh.port_of_loading ? cityOf(sh.port_of_loading) : "";
-  const to = sh.port_of_discharge ? cityOf(sh.port_of_discharge) : "";
-  if (from && to) bits.push(`Sailing from ${from} to ${to}${sh.vessel ? " on " + sh.vessel : ""}.`);
-  else if (sh.vessel) bits.push(`On ${sh.vessel}.`);
-  return bits.join(" ");
-}
-
-function renderDetail(s) {
-  const sh = s.shipment || {}, tone = TONE[s.status];
-  const n = s.defect_fields.length;
-  const verdict = s.status === "MISMATCH"
-    ? `${n === 1 ? "One detail" : n === 2 ? "Two details" : n + " details"} on the carrier's draft ${n === 1 ? "does" : "do"} not match your instruction.`
-    : s.status === "OK" ? "Every detail on the carrier's draft matches your instruction."
-    : "We could not check this one, so it needs your eyes.";
-
-  const table = (s.comparisons && s.comparisons.length) ? `
-    <h3>What we checked</h3>
-    <table><thead><tr><th>Detail</th><th>Your instruction says</th><th>The carrier's draft says</th><th></th></tr></thead>
-    <tbody>${s.comparisons.map(cmpRow).join("")}</tbody></table>
-    ${n ? `<p class="todo">Ask the carrier to correct ${n === 1 ? "this detail" : "these details"} and send a new draft.</p>` : ""}`
-    // The reason is already stated in the callout above; repeating it verbatim
-    // reads like the page is stuck.
-    : `<h3>What we checked</h3><p class="nothing">None of the seven details could be compared.</p>`;
-
-  const bad = (s.comparisons || []).filter(c => c.agree === false);
-  const quotes = bad.map(c => `<p><span class="doc">${esc(NAMES[c.field])}, as written on your instruction (line ${c.si_line}):</span>
-      <span class="line">${esc(c.si_label)}: ${esc(c.si_value)}</span></p>
-    <p><span class="doc">and on the carrier's draft (line ${c.bl_line}):</span>
-      <span class="line">${esc(c.bl_label)}: ${esc(c.bl_value)}</span></p>`).join("");
-
-  document.getElementById("detail").innerHTML = `
-    <h2>${esc(who(s))}</h2>
-    <p class="sub num">${esc(s.oc_number ? "Shipment " + s.oc_number : "No shipment reference")}${
-      s.booking_ref ? " · booking " + esc(s.booking_ref) : ""}${
-      sh.bl_number ? " · B/L " + esc(sh.bl_number) : ""}</p>
-
-    <p class="verdict"><span class="tag ${tone}">${TAG[s.status]}</span><span>${esc(verdict)}</span></p>
-    ${cargoLine(sh) ? `<p class="cargo">${esc(cargoLine(sh))}</p>` : "<div style='height:14px'></div>"}
-
-    ${s.status === "NEEDS_REVIEW" ? `<div class="callout">${esc(WHY[s.review_reason] || s.review_reason)}, so nothing was guessed. Open the documents yourself and check.</div>` : ""}
-
-    ${table}
-
-    ${quotes ? `<h3>Where this came from</h3>
-      <details><summary>Show the exact wording on both documents</summary>
-      <div class="quote">${quotes}</div></details>` : ""}
-
-    ${s.status === "MISMATCH" ? `<div class="buttons">
-      <button class="btn go" id="draft">Write the email to the carrier</button>
-      <button class="btn" id="copy">Copy the details</button>
-    </div><div id="draftout"></div>` : ""}`;
-
-  const d = document.getElementById("draft");
-  if (d) d.addEventListener("click", () => {
-    document.getElementById("draftout").innerHTML =
-      `<div class="email"><div class="h">Ready to send from your own mailbox</div><pre>${esc(emailText(s))}</pre></div>
-       <p class="after">Read it over, change anything you want, then send it yourself.</p>`;
-    d.textContent = "Rewrite the email";
-  });
-  const c = document.getElementById("copy");
-  if (c) c.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(emailText(s)); c.textContent = "Copied"; }
-    catch (e) { c.textContent = "Could not copy"; }
-    setTimeout(() => { c.textContent = "Copy the details"; }, 1800);
-  });
-}
-
-function cmpRow(c) {
-  const bad = c.agree === false, unknown = c.agree === null;
-  const mark = bad ? "" : unknown ? '<span class="dash">couldn’t read</span>' : '<span class="yes">✓</span>';
-  return `<tr class="${bad ? "bad" : ""}">
-    <td>${esc(NAMES[c.field])}</td>
-    <td>${esc(c.si_value || "—")}<span class="src">${esc(c.si_label || "not on the document")}</span></td>
-    <td>${esc(c.bl_value || "—")}<span class="src">${esc(c.bl_label || "not on the document")}</span></td>
-    <td>${mark}</td></tr>`;
-}
-
-function emailText(s) {
-  const ref = s.oc_number || s.booking_ref || "this shipment";
-  const lines = s.defect_fields.map(f => {
-    const c = s.comparisons.find(x => x.field === f);
-    return `${NAMES[f]}\n  - our shipping instruction says ${c.si_value}\n  - your draft B/L says ${c.bl_value}`;
-  }).join("\n\n");
-  return `Subject: Draft B/L correction needed - ${ref}
-
-Dear Sir or Madam,
-
-Thank you for the draft bill of lading for ${ref}.
-
-We have checked it against our shipping instruction and found the
-following ${s.defect_fields.length === 1 ? "difference" : "differences"}:
-
-${lines}
-
-Our shipping instruction is the correct reference. Please amend the draft
-and send it back for confirmation.
-
-Thank you for your assistance.
-
-Best regards,`;
-}
-
-boot();
+  location.href = seen ? "checks.html" : "welcome.html";
+});
 </script>
 </body>
 </html>

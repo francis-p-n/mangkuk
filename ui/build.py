@@ -56,16 +56,23 @@ def main() -> int:
         "shipments": [slim(r) for r in comparisons],
     }
 
-    template = (ROOT / "ui" / "index.html").read_text(encoding="utf-8")
+    ui = ROOT / "ui"
+    dest = ROOT / "out" / "site"
+    dest.mkdir(parents=True, exist_ok=True)
+
     # </script> inside the JSON would close the host tag early.
     blob = json.dumps(payload, ensure_ascii=False).replace("</", "<" + chr(92) + "/")
-    page = template.replace("__SDOC_DATA__", blob)
 
-    dest = ROOT / "out" / "ui"
-    dest.mkdir(parents=True, exist_ok=True)
-    (dest / "index.html").write_text(page, encoding="utf-8")
-    size = (dest / "index.html").stat().st_size
-    print(f"wrote {dest / 'index.html'}  ({size / 1024:.0f} KB, {len(payload['shipments'])} shipments)")
+    # index.html is the sign-in, welcome.html the walkthrough, checks.html the
+    # board. Only the board carries data; the other two are plain pages.
+    for name in ("index.html", "welcome.html", "checks.html", "app.css"):
+        text = (ui / name).read_text(encoding="utf-8")
+        if name == "checks.html":
+            text = text.replace("__SDOC_DATA__", blob)
+        (dest / name).write_text(text, encoding="utf-8")
+        print(f"  {name:<14} {(dest / name).stat().st_size / 1024:7.0f} KB")
+
+    print(f"\nwrote {dest}  ({len(payload['shipments'])} shipments)")
     return 0
 
 

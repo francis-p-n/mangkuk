@@ -94,9 +94,24 @@ python eval/audit.py
 python ui/build.py
 ```
 
-`ui/build.py` writes `out/ui/index.html` — a single self-contained page that
-opens by double-click and uploads to S3 unchanged. No server, no build
-tooling, no fetch at runtime.
+`ui/build.py` writes `out/site/` — a three-page static site that uploads to
+S3 unchanged. No server, no build tooling, no framework, no dependencies at
+all in the browser.
+
+| Page | What it is |
+|---|---|
+| `index.html` | Sign in |
+| `welcome.html` | Four-step walkthrough, shown once |
+| `checks.html` | The board, with the run's results inlined |
+| `app.css` | Shared styles |
+
+**The sign-in is a demo, and says so on the page.** It accepts any email and
+any password, checks nothing, and stores no password — it only remembers a
+display name for the session. The route guard on `checks.html` is a front
+door, not security: it keeps the prototype's flow coherent, and a real
+deployment authenticates before the page is ever served (Cognito, or Entra ID
+alongside the Graph app registration already needed for mail). That is the
+one place where this prototype should not be mistaken for a product.
 
 ## The problem
 
@@ -252,6 +267,12 @@ That is the glass box, one click deep, out of the way until wanted.
 
 "Draft correction reply" produces a ready email quoting both values per
 conflicting field. Nothing is sent — the draft is shown, the clerk sends it.
+
+New users land on a four-step walkthrough: the two documents and the seven
+details, the three piles, how to read a mismatch (with a worked example), and
+the promise that nothing is ever sent for them. It is skippable, shown once,
+and reachable again from the header — and finishing it also settles the
+inline explainer on the board, so nobody reads the same thing twice.
 
 Escalations name their reason in plain language and say that the system stopped
 rather than guessed. Where a document could not be read there is no extracted
@@ -561,8 +582,11 @@ src/sdoc/
   pipeline.py     orchestration, submission and results output
   validate.py     submission shape and consistency checks
 ui/
-  index.html      the workspace, with a data placeholder
-  build.py        inlines results into out/ui/index.html
+  index.html      sign in
+  welcome.html    first-run walkthrough
+  checks.html     the board, with a data placeholder
+  app.css         shared styles
+  build.py        assembles out/site/
 tests/            237 tests
 eval/             mutation.py, audit.py, desk_cases.py
 docs/             assumptions.md, architecture.md
