@@ -193,6 +193,8 @@ dependencies.
 | `python eval/mutation.py` | Inject defects, measure detection |
 | `python eval/desk_cases.py` | 31 real-world document quirks |
 | `python eval/audit.py` | Audit a run with no ground truth |
+| `python eval/rubric.py` | Check every claim in section 1 against a live run |
+| `python eval/rubric.py --loop` | Same, re-running until they all pass |
 | `python eval/score.py --truth gt.json` | Score against the organizers' truth |
 | `python run.py --source http://host:8080` | Run against their server |
 | `python run.py --source http://host:8080 --submit` | Run and POST it for scoring |
