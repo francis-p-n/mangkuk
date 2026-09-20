@@ -146,6 +146,32 @@ def _retry_after(exc) -> float | None:
 GEMINI_MIN_OUTPUT_TOKENS = 512
 
 
+def _daily_quota(exc) -> bool:
+    """Is this 429 a per-day cap rather than a per-minute one?
+
+    The two look identical in the status code and the free tier sends a
+    `retryDelay` of a few seconds for both, which is honest about when the
+    next request is allowed and misleading about when it would succeed.
+    Google names the quota in the error body, so read it there.
+
+    Reading the body consumes it and it cannot be put back - the stream is
+    closed once drained - so the text is cached on the exception instead.
+    Anything downstream that wants the body reads it from there rather than
+    from a stream this function has already emptied.
+    """
+    raw = getattr(exc, "_body", None)
+    if raw is None:
+        try:
+            raw = exc.read().decode("utf-8", "replace")
+        except Exception:
+            raw = ""
+        try:
+            exc._body = raw
+        except Exception:                 # some exceptions refuse attributes
+            pass
+    return "PerDay" in raw or "per day" in raw.lower()
+
+
 def _gemini_text(payload: dict) -> str:
     """Pull the reply text out of a generateContent response.
 
@@ -225,6 +251,15 @@ class GeminiClient:
                 if exc.code != 429 and exc.code < 500:
                     raise           # a bad key or a bad request; waiting will not help
                 last = exc
+                if exc.code == 429 and _daily_quota(exc):
+                    # A per-day cap does not clear before tomorrow, whatever
+                    # the server's Retry-After says. Sleeping through the
+                    # backoff once per call is a quarter-hour of nothing on a
+                    # full run, and the answer is the same at the end of it.
+                    raise RateLimited(
+                        "daily quota exhausted for this model - the limit "
+                        "resets tomorrow, so retrying now cannot help"
+                    ) from exc
                 wait = _retry_after(exc) if exc.code == 429 else None
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 last = exc
