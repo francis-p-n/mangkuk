@@ -15,6 +15,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
+# Load ROOT/.env into os.environ so API keys need not be exported by hand.
+# Optional: without python-dotenv the real environment still works as before.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+except ImportError:
+    pass
+
 from sdoc.agents import (                      # noqa: E402
     MAX_RETRIES, AgentStats, AgentUnavailable, FieldResolver, TriageAgent,
     make_client,
