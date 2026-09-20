@@ -122,8 +122,8 @@ confidence while that question is open — 150 in total (28.8%). Those are the
 genuine judgement calls, and exactly the residue an LLM stage should own. The
 remaining 71.2% are decided by rules at high confidence.
 
-**6 — The agent's guardrails are tested; the live call is not.** 27 tests drive
-the resolver through a fake client: a grounded value is accepted, an invented
+**6 — The agent's guardrails are tested; the live call is not.** 39 tests drive
+the resolver and the provider wiring through a fake client: a grounded value is accepted, an invented
 company rejected, a genuine quote carrying a smuggled value rejected, an
 implausible weight rejected, malformed replies treated as abstention, and a
 hallucinating agent still escalates. **Not verified:** no live model call has
