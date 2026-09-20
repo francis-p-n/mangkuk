@@ -14,6 +14,7 @@ from .classify import Classification, classify
 from .compare import Verdict, compare_documents
 from .documents import Document, extract
 from .fields import FIELDS, extract_context, extract_fields
+from .learned import Overrides
 from .mailsource import Email, MailSource
 from .places import PlaceBook, country_from_address
 from .severity import assess
@@ -98,6 +99,7 @@ def process_email(
     chase_as_comparison: bool = False,
     resolver=None,
     triage=None,
+    learned: Overrides | None = None,
 ) -> EmailResult:
     cls = classify(
         email.subject, email.body, email.domain, email.attachments, chase_as_comparison
@@ -130,7 +132,7 @@ def process_email(
         else:
             bl = doc
 
-    verdict: Verdict = compare_documents(si, bl, resolver)
+    verdict: Verdict = compare_documents(si, bl, resolver, learned)
     result.status = verdict.status
     result.review_reason = verdict.review_reason
     result.has_defect = verdict.has_defect
@@ -159,9 +161,10 @@ def run(
     chase_as_comparison: bool = False,
     resolver=None,
     triage=None,
+    learned: Overrides | None = None,
 ) -> list[EmailResult]:
     results = [
-        process_email(source, e, chase_as_comparison, resolver, triage)
+        process_email(source, e, chase_as_comparison, resolver, triage, learned)
         for e in source.emails()
     ]
     settle_places(results)

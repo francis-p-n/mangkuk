@@ -29,10 +29,15 @@ window.SDOC.session = (function () {
     const link = (href, text) => here === href
       ? `<span class="btn plain is-here" aria-current="page">${text}</span>`
       : `<a class="btn plain" href="${href}">${text}</a>`;
+    // The corrections link only appears once there are some: an empty page
+    // in the navigation is a question nobody asked.
+    const taught = window.SDOC.learned ? window.SDOC.learned.count() : 0;
     el.innerHTML =
       `<span class="signedin">${window.SDOC.fmt.esc(user() || "")}</span>` +
       link("home.html", "Today") +
       link("search.html", "Search") +
+      (taught || here === "learned.html"
+        ? link("learned.html", `Corrections<span class="pipcount">${taught}</span>`) : "") +
       `<a class="btn plain" href="welcome.html">Walkthrough</a>` +
       `<button type="button" class="btn plain" data-act="signout">Sign out</button>`;
     const out = el.querySelector('[data-act="signout"]');

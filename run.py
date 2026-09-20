@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from sdoc.agents import (                      # noqa: E402
     AgentStats, AgentUnavailable, FieldResolver, TriageAgent, make_client,
 )
+from sdoc.learned import Overrides                # noqa: E402
 from sdoc.mailsource import open_source          # noqa: E402
 from sdoc.pipeline import run, write_outputs      # noqa: E402
 from sdoc.validate import validate                # noqa: E402
@@ -34,10 +35,26 @@ def main() -> int:
              "requests with a missing attachment (see docs/assumptions.md)",
     )
     ap.add_argument(
+        "--learned", metavar="FILE",
+        help="apply the desk's own corrections from an overrides file "
+             "(see sdoc/learned.py); off by default, so the scored run stays "
+             "reproducible from the repo alone",
+    )
+    ap.add_argument(
         "--agent", choices=("off", "bedrock", "anthropic", "gemini"), default="off",
         help="run the LLM recovery stage before escalating (default: off)",
     )
     args = ap.parse_args()
+
+    try:
+        learned = Overrides.load(args.learned)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"cannot read {args.learned}: {exc}")
+        return 2
+    if learned:
+        hushed = len(learned.suppressions)
+        tail = f", {hushed} of which stop a flag being raised" if hushed else ""
+        print(f"applying {len(learned)} correction(s) the desk recorded{tail}\n")
 
     agent_stats = AgentStats()
     resolver = triage = None
@@ -52,7 +69,8 @@ def main() -> int:
         triage = TriageAgent(client, agent_stats)
         print(f"agent stage: {args.agent}\n")
 
-    results = run(open_source(args.source), args.chase_as_comparison, resolver, triage)
+    results = run(open_source(args.source), args.chase_as_comparison,
+                  resolver, triage, learned)
     sub_path, res_path = write_outputs(results, args.out)
 
     cats = collections.Counter(r.category for r in results)

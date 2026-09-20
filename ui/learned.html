@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What you have taught it — Document checks</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+<style>
+.lead { font-size: 16px; color: var(--ink-soft); max-width: 62ch; margin: 0 0 24px; }
+.teachings { list-style: none; margin: 0 0 26px; padding: 0; }
+.teachings li { border: 1px solid var(--rule); border-radius: var(--r-lg);
+                background: var(--card); padding: 17px 20px; margin: 0 0 12px; }
+.teachings .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+.teachings .head b { font-size: 15.5px; }
+.teachings .said { font-size: 13px; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
+.teachings .said.same { background: var(--fine-wash); color: var(--fine); }
+.teachings .said.diff { background: var(--sev-critical-wash); color: var(--sev-critical); }
+.teachings .who { margin-left: auto; font-size: 13px; color: var(--ink-faint); }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.pairs > div { min-width: 0; background: var(--sunk); border-radius: var(--r); padding: 9px 13px; }
+.pairs .lbl { display: block; font-size: 12px; color: var(--ink-faint); text-transform: uppercase;
+              letter-spacing: .05em; margin-bottom: 2px; }
+.pairs .val { font-family: var(--mono); font-size: 13.5px; word-break: break-word; }
+.teachings .note { margin: 11px 0 0; font-size: 14px; color: var(--ink-soft); }
+.next { background: var(--brand-wash); border: 1px solid var(--rule); border-radius: var(--r-lg);
+        padding: 20px 23px; margin: 0 0 24px; }
+.next h2 { font-size: 16px; margin: 0 0 8px; }
+.next p { margin: 0 0 10px; color: var(--ink-soft); font-size: 14.5px; max-width: 62ch; }
+.next code { font-family: var(--mono); font-size: 13px; background: var(--card);
+             border: 1px solid var(--rule); border-radius: 5px; padding: 2px 7px; }
+.none-yet { padding: 34px 24px; text-align: center; color: var(--ink-soft);
+            border: 1px dashed var(--rule-firm); border-radius: var(--r-lg); }
+.acts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+</style>
+</head>
+<body>
+<a class="skip" href="#taught">Skip to your corrections</a>
+
+<div class="wrap">
+  <header class="titlerow">
+    <div>
+      <h1>What you have taught it</h1>
+      <p class="date" id="count"></p>
+    </div>
+    <nav class="whoami" id="whoami" aria-label="Account and sections"></nav>
+  </header>
+
+  <p class="lead">When you tell the checker it has something wrong, it is kept
+    here rather than forgotten at the end of the shipment. Nothing you record
+    changes a verdict on its own — a person applies these deliberately, with a
+    report of everything that would change in front of them.</p>
+
+  <main id="taught">
+    <ul class="teachings" id="list"></ul>
+
+    <section class="next" id="next" hidden aria-labelledby="next-heading">
+      <h2 id="next-heading">Making these permanent</h2>
+      <p>Download the file, put it in the project folder, then ask for the
+        report. It names every shipment whose verdict would change, and marks
+        the ones where a difference would stop being reported.</p>
+      <p><code>python tools/apply_overrides.py</code></p>
+      <p>When the report looks right, <code>--write</code> turns each
+        correction into a case in the test suite, so what you decided here
+        keeps being checked long after this shipment has sailed.</p>
+      <div class="acts">
+        <button type="button" class="btn go" id="dl">Download my corrections</button>
+        <button type="button" class="btn" id="wipe">Clear them all</button>
+      </div>
+    </section>
+  </main>
+
+  <p class="foot">Stored in this browser only. Nothing is sent anywhere.</p>
+</div>
+
+<script src="lib/format.js"></script>
+<script src="lib/session.js"></script>
+<script src="lib/learned.js"></script>
+<script src="lib/views.js"></script>
+<script src="data.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (!window.SDOC.session.require()) return;
+
+  const L = window.SDOC.learned, F = window.SDOC.fmt;
+  const NAMES = ((window.SDOC.data || {}).labels || {}).field || {};
+  window.SDOC.session.mountHeader(document.getElementById("whoami"), { here: "learned.html" });
+
+  function render() {
+    const rows = L.all();
+    document.getElementById("count").textContent = rows.length
+      ? `${rows.length} correction${rows.length === 1 ? "" : "s"} waiting to be applied.`
+      : "Nothing yet.";
+    document.getElementById("next").hidden = !rows.length;
+
+    const list = document.getElementById("list");
+    if (!rows.length) {
+      list.innerHTML = `<li class="none-yet">Open a shipment and, on any detail
+        the checker got wrong, say so. It will appear here.</li>`;
+      return;
+    }
+    list.innerHTML = rows.map((e, i) => `
+      <li>
+        <div class="head">
+          <b>${F.esc(NAMES[e.field] || e.field)}</b>
+          <span class="said ${e.agree ? "same" : "diff"}">You said ${
+            e.agree ? "these are the same" : "these are not the same"}</span>
+          <span class="who">${F.esc(e.who || "someone")}${e.when ? " · " + F.esc(e.when) : ""}</span>
+        </div>
+        <div class="pairs">
+          <div><span class="lbl">Your instruction</span>
+            <span class="val">${F.esc(e.si_value)}</span></div>
+          <div><span class="lbl">The carrier's draft</span>
+            <span class="val">${F.esc(e.bl_value)}</span></div>
+        </div>
+        ${e.note ? `<p class="note">${F.esc(e.note)}</p>` : ""}
+        <p class="note"><button type="button" class="linkish" data-drop="${i}">Remove this correction</button></p>
+      </li>`).join("");
+
+    list.querySelectorAll("[data-drop]").forEach(el =>
+      el.addEventListener("click", () => {
+        const e = L.all()[Number(el.dataset.drop)];
+        if (e) { L.forget(e.field, e.si_value, e.bl_value); render(); }
+      }));
+  }
+
+  document.getElementById("dl").addEventListener("click", () => L.download());
+  document.getElementById("wipe").addEventListener("click", function () {
+    if (this.dataset.sure !== "yes") {
+      this.dataset.sure = "yes";
+      this.textContent = "Clear them? Click again";
+      return;
+    }
+    L.clear();
+    this.dataset.sure = "";
+    this.textContent = "Clear them all";
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

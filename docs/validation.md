@@ -7,10 +7,10 @@ Every number here is reproducible from the commands in the README.
 
 There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 263 tests, all passing
+### 1. Test suite — 309 tests, all passing
 
 ```
-263 passed in 1.65s
+309 passed in 4.81s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -28,6 +28,14 @@ The integration test runs the real bundle and pins 18 hand-verified cases —
 seven known defects with their exact field lists, three known-clean drafts, and
 eight known escalations. These are the guard against a normalization tweak
 quietly breaking a defect already being caught.
+
+Two more suites pin judgements rather than behaviour. `tests/test_severity.py`
+asserts that the consequence ranking still says what an operations team was
+told it says — that a wrong consignee outranks a wrong container count, and
+that three cheap errors never add up to an expensive one. `tests/test_learned.py`
+asserts mostly what a desk correction *cannot* do: reach a pair it was not
+taught, reach another field, supply a value the parsers never found, or affect
+a run that did not ask for it.
 
 `tests/test_chasers.py` is a different kind of test: rather than pinning an
 output, its 14 assertions pin the *corpus evidence* behind the draft-chaser

@@ -22,6 +22,34 @@ That is the glass box, one click deep, out of the way until wanted.
 "Draft correction reply" produces a ready email quoting both values per
 conflicting field. Nothing is sent — the draft is shown, the clerk sends it.
 
+The fixing queue arrives in the order to work it, worst first, and Today opens
+with a line naming the three bands: *13 stop and fix first — the wrong party
+could take the cargo.* Every row carries its band instead of a status tag it
+could already infer from the pile it is sitting in, and the panel says which
+field earned the band and why. The band is always spelled out, so the colour
+repeats the label rather than carrying it.
+
+## Disagreeing with the checker
+
+Beside every comparable row is one control: *these are the same*, or *these
+are not the same*. It appears only where an override could mean something —
+never on a row nobody could read, and never where both documents say the same
+thing, because an override is a rule about a *pair* of values and there is no
+pair there.
+
+Recording one changes nothing on the page, and the panel says so. Silencing a
+check should not be the side effect of a click, so the correction is kept and
+applied later by a person running `tools/apply_overrides.py` with the blast
+radius in front of them. "What you have taught it" lists everything recorded,
+who recorded it and when, and downloads it as `overrides.json` — the exact
+file `sdoc/learned.py` reads. The navigation link for it appears only once
+there is something in it.
+
+Corrections live in this browser's `localStorage` and never leave it. That is
+right for a prototype and wrong for a desk: shared, a correction one clerk
+makes should help the next one, which is a small table behind an endpoint and
+the same JSON shape.
+
 New users land on a four-step walkthrough: the two documents and the seven
 details, the three piles, how to read a mismatch (with a worked example), and
 the promise that nothing is ever sent for them. It is skippable, shown once,

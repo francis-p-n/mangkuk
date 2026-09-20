@@ -48,17 +48,55 @@ window.SDOC.views = (function () {
         ` aria-current="${current ? "true" : "false"}">${inner}</button>`;
   }
 
+  // A row of the comparison table, plus the one control that makes this a
+  // conversation rather than a verdict: the reader can say the machine has
+  // it wrong, and be recorded.
   function comparisonRow(c) {
     const bad = c.agree === false, unknown = c.agree === null;
     const mark = bad
       ? '<span class="mark-bad">Does not match</span>'
       : unknown ? '<span class="dash">Could not read</span>'
                 : '<span class="yes">Matches</span>';
-    return `<tr class="${bad ? "bad" : ""}">
+
+    // Nothing to teach where the two documents say exactly the same thing:
+    // an override is a rule about a *pair* of values, so "these two identical
+    // strings mean different things" is not something it could ever express.
+    const L = window.SDOC.learned;
+    const identical = String(c.si_value || "").trim().toUpperCase() ===
+                      String(c.bl_value || "").trim().toUpperCase();
+    const teachable = L && !unknown && !identical;
+    const told = teachable ? L.find(c.field, c.si_value, c.bl_value) : null;
+    let teach = "";
+    if (told) {
+      teach = `<span class="taught">You said ${told.agree
+        ? "these are the same" : "these are not the same"}` +
+        `<button type="button" class="linkish" data-unteach="${esc(c.field)}"` +
+        ` aria-label="Undo what you said about ${esc(NAMES()[c.field] || c.field)}">Undo</button></span>`;
+    } else if (teachable) {
+      teach = `<button type="button" class="linkish" data-teach="${esc(c.field)}">${
+        bad ? "These are the same" : "These are not the same"}</button>`;
+    }
+
+    return `<tr class="${bad ? "bad" : ""}${told ? " told" : ""}">
       <th scope="row">${esc(NAMES()[c.field] || c.field)}</th>
       <td>${esc(c.si_value || "—")}<span class="src">${esc(c.si_label || "not on the document")}</span></td>
       <td>${esc(c.bl_value || "—")}<span class="src">${esc(c.bl_label || "not on the document")}</span></td>
-      <td class="verdict-cell">${mark}</td></tr>`;
+      <td class="verdict-cell">${mark}${teach}</td></tr>`;
+  }
+
+  // Shown once the reader has corrected something on this shipment. It says
+  // plainly that nothing has changed yet, because nothing has: the record is
+  // applied by a person running a command, not by this click.
+  function taughtNote(s) {
+    const L = window.SDOC.learned;
+    if (!L) return "";
+    const mine = (s.comparisons || [])
+      .filter(c => L.find(c.field, c.si_value, c.bl_value)).length;
+    if (!mine) return "";
+    return `<p class="taught-note">You have corrected ${
+      mine === 1 ? "one detail" : mine + " details"} here. Nothing on this page has
+      changed — your corrections are saved for review on
+      <a href="learned.html">what you have taught it</a>.</p>`;
   }
 
   function email(s) {
@@ -103,7 +141,8 @@ Best regards,`;
         <thead><tr><th scope="col">Detail</th><th scope="col">Your instruction says</th>
           <th scope="col">The carrier's draft says</th><th scope="col">Result</th></tr></thead>
         <tbody>${s.comparisons.map(comparisonRow).join("")}</tbody></table></div>
-      ${n ? `<p class="todo">Ask the carrier to correct ${n === 1 ? "this detail" : "these details"} and send a new draft.</p>` : ""}`
+      ${n ? `<p class="todo">Ask the carrier to correct ${n === 1 ? "this detail" : "these details"} and send a new draft.</p>` : ""}
+      <div data-slot="taught">${taughtNote(s)}</div>`
       : `<h3>What we checked</h3><p class="nothing">None of the seven details could be compared.</p>`;
 
     const bad = (s.comparisons || []).filter(c => c.agree === false);
@@ -140,8 +179,43 @@ Best regards,`;
       </div><div data-slot="draft" aria-live="polite"></div>` : ""}`;
   }
 
-  // Wire the two buttons the detail panel may contain.
-  function bindDetail(root, s) {
+  // Wire the buttons the detail panel may contain.
+  function bindDetail(root, s, { onTaught } = {}) {
+    const L = window.SDOC.learned;
+    if (L) {
+      const find = f => (s.comparisons || []).find(c => c.field === f);
+      // Redraw only the table body, so correcting a detail does not throw the
+      // reader back to the top of a panel they were part-way through.
+      const again = () => {
+        const body = root.querySelector("tbody");
+        if (body) {
+          body.innerHTML = s.comparisons.map(comparisonRow).join("");
+          bindTeaching(body);
+        }
+        const note = root.querySelector('[data-slot="taught"]');
+        if (note) note.innerHTML = taughtNote(s);
+        if (onTaught) onTaught();
+      };
+      const bindTeaching = function (scope) {
+        scope.querySelectorAll("[data-teach]").forEach(el =>
+          el.addEventListener("click", () => {
+            const c = find(el.dataset.teach);
+            if (!c) return;
+            L.record({ field: c.field, si_value: c.si_value, bl_value: c.bl_value,
+                       agree: c.agree === false, was: c.agree });
+            again();
+          }));
+        scope.querySelectorAll("[data-unteach]").forEach(el =>
+          el.addEventListener("click", () => {
+            const c = find(el.dataset.unteach);
+            if (!c) return;
+            L.forget(c.field, c.si_value, c.bl_value);
+            again();
+          }));
+      };
+      bindTeaching(root);
+    }
+
     const slot = root.querySelector('[data-slot="draft"]');
     const draft = root.querySelector('[data-act="draft"]');
     if (draft) draft.addEventListener("click", () => {
@@ -158,5 +232,5 @@ Best regards,`;
     });
   }
 
-  return { issue, row, detail, bindDetail, email, BAND, BAND_WHY };
+  return { issue, row, detail, bindDetail, email, comparisonRow, BAND, BAND_WHY };
 })();

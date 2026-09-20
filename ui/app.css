@@ -174,6 +174,28 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .band-why.serious  { background: var(--sev-serious-wash);  color: var(--sev-serious); }
 .band-why.routine  { background: var(--sev-routine-wash);  color: var(--sev-routine); }
 
+/* The control that lets a reader disagree with a verdict. Deliberately a
+   link, not a button: it records an opinion, it does not perform an action. */
+.linkish {
+  background: none; border: 0; padding: 0; font: inherit; font-size: 13px;
+  color: var(--brand); text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer;
+}
+.linkish:hover { text-decoration-thickness: 2px; }
+.verdict-cell .linkish, .taught { display: block; margin-top: 5px; }
+.taught { font-size: 12.5px; color: var(--ink-soft); }
+.taught .linkish { display: inline; margin: 0 0 0 7px; }
+tr.told td, tr.told th { background: var(--brand-wash); }
+.taught-note {
+  margin: 12px 0 0; padding: 11px 15px; font-size: 14px;
+  background: var(--brand-wash); border-radius: var(--r); color: var(--ink-soft);
+}
+.pipcount {
+  display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px;
+  border-radius: 999px; background: var(--brand); color: #fff;
+  font-size: 11.5px; font-variant-numeric: tabular-nums; text-align: center;
+}
+
 .detail { padding: 26px 30px 28px; }
 .detail h2 { font-family: var(--ui-display); font-size: 21px; font-weight: 600; margin: 0 0 3px; letter-spacing: 0; }
 .detail .sub { color: var(--ink-faint); font-size: 13.5px; margin: 0 0 18px;

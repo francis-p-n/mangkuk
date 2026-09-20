@@ -18,6 +18,10 @@ class FieldComparison:
     bl_label: str = ""
     si_line: int = 0
     bl_line: int = 0
+    # Set when the desk overruled the rules on this exact pair of values, so
+    # the screen can say so rather than presenting it as the machine's own
+    # conclusion.
+    taught: bool = False
 
     @property
     def is_defect(self) -> bool:
@@ -48,13 +52,18 @@ def _blocked(si: Document | None, bl: Document | None) -> str | None:
     return None
 
 
-def compare_documents(si: Document | None, bl: Document | None, resolver=None) -> Verdict:
+def compare_documents(si: Document | None, bl: Document | None, resolver=None,
+                      learned=None) -> Verdict:
     """Compare two documents.
 
     `resolver`, when supplied, gets one chance to find fields the deterministic
     parsers missed — before anything is escalated. Whatever it finds is treated
     exactly like a parsed field from here on: it goes through the same
     normalization and the same comparator.
+
+    `learned`, when supplied, is what the desk has corrected the rules on -
+    see sdoc/learned.py. It is consulted per pair of values, never as a
+    pattern, and is empty unless a file was passed on the command line.
     """
     blocker = _blocked(si, bl)
     if blocker:
@@ -82,10 +91,11 @@ def compare_documents(si: Document | None, bl: Document | None, resolver=None) -
         if bl_fields.missing:
             resolver.resolve(bl.text, bl_fields, "draft bill of lading")
 
-    return compare_fieldsets(si_fields, bl_fields)
+    return compare_fieldsets(si_fields, bl_fields, learned)
 
 
-def compare_fieldsets(si_fields: FieldSet, bl_fields: FieldSet) -> Verdict:
+def compare_fieldsets(si_fields: FieldSet, bl_fields: FieldSet,
+                      learned=None) -> Verdict:
     comparisons: list[FieldComparison] = []
     defects: list[str] = []
     undecidable: list[str] = []
@@ -93,12 +103,23 @@ def compare_fieldsets(si_fields: FieldSet, bl_fields: FieldSet) -> Verdict:
     for name in FIELDS:
         s, b = si_fields.get(name), bl_fields.get(name)
         agree = None if (s is None or b is None) else values_agree(name, s.value, b.value)
+
+        # The desk gets the last word on a pair it has ruled on, and only on
+        # that pair. A value the parsers never found stays undecidable: an
+        # override settles a disagreement, it does not supply a missing field.
+        taught = False
+        if learned and s is not None and b is not None:
+            ruled = learned.verdict(name, s.value, b.value)
+            if ruled is not None and ruled is not agree:
+                agree, taught = ruled, True
+
         comparisons.append(
             FieldComparison(
                 field=name,
                 si_value=s.value if s else None,
                 bl_value=b.value if b else None,
                 agree=agree,
+                taught=taught,
                 si_label=s.label if s else "",
                 bl_label=b.label if b else "",
                 si_line=s.line_no if s else 0,

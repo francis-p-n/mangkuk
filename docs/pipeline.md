@@ -98,6 +98,60 @@ shipment fields out of a packing list.
 bundle is one implementation; a Microsoft Graph mailbox would be another, and
 nothing downstream would change.
 
+### Ranking the work
+
+The comparator says *whether* seven fields agree and nothing about which
+disagreement matters. `sdoc/severity.py` supplies that: one table, rank and
+reason side by side, so an operations team can argue with the judgement in
+one edit rather than argue with a score.
+
+| Rank | Field | Because |
+|---:|---|---|
+| 1 | consignee | names who may take delivery |
+| 2 | shipper | title at origin, and who may amend the bill |
+| 3 | port_of_discharge | cargo discharged in the wrong country |
+| 4 | gross_weight_kg | the declaration a terminal verifies against |
+| 5 | port_of_loading | routing, rating, and the carrier's records |
+| 6 | notify_party | nobody is told the cargo arrived; storage accrues |
+| 7 | container_count | an amended bill and a corrected invoice |
+
+A draft is as bad as its single worst field — the fields are not summed,
+because three routine errors do not add up to a wrong consignee. The count
+only breaks ties within a rank. Three bands, because a person triaging a
+queue can hold three in mind and not seven; the bundle splits 13 / 23 / 10,
+so the ordering is doing real work.
+
+### Learning from the desk
+
+A clerk disagreeing with a verdict is the most informative event this system
+sees, and normally it is said out loud and lost. `sdoc/learned.py` records it
+as an override: one field, one pair of values, and what the person said is
+true.
+
+Three restrictions, because "the user can teach it" is also the shape of a
+checker being quietly switched off:
+
+1. **One exact pair, never a pattern.** Teaching it about two spellings of
+   Roxcel says nothing about any other pair, so an override cannot widen on
+   its own. An override where both sides read the same value is refused
+   outright: there is no pair there, and it would apply everywhere.
+2. **Off unless asked for.** `run.py` applies nothing without `--learned`,
+   so the scored submission stays reproducible from the repo alone.
+3. **Never quiet.** `tools/apply_overrides.py` reports every verdict in the
+   inbox that would move, marking the ones that stop a difference being
+   reported, before anything is written. Every override carries who recorded
+   it and when.
+
+An override settles a disagreement; it is not a source of values. A field the
+parsers never found stays undecidable, whatever the file says.
+
+`--write` then generates `eval/learned_cases.py`, which runs with the test
+suite. That is the part worth the effort: a clerk's judgement stops being a
+note on one email and becomes an assertion that keeps being checked. The
+report also separates corrections the base rules could already handle — those
+are a missing rule in `normalize/` and should be fixed there — from the ones
+that are irreducible facts about two companies.
+
 ## What it does today
 
 520 emails, end to end, in about a second.

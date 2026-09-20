@@ -28,11 +28,20 @@ repetitive, and a missed detail means an amended bill and a delay.
 - **Catches the subtle traps**: a port name changed while its UN/LOCODE stayed
   the same, tonnes against kilograms, four containers where the instruction
   said three, a "bill of lading" that is really a packing list.
+- **Ranks the queue by consequence.** A wrong consignee can put cargo in the
+  hands of a party with no right to it; a wrong container count is an amended
+  invoice. 13 critical, 23 serious, 10 routine — worst first, with the reason
+  named.
 - **Refuses to guess.** Missing, unreadable or wrong document → it stops and
   says exactly why.
 - **Shows its evidence.** Every mismatch quotes both documents, with line
   numbers.
 - **Drafts the correction email, and never sends it.**
+- **Learns from the desk, visibly.** When a clerk says a flag is wrong, the
+  pair of values is recorded, and one command reports every verdict in the
+  inbox that would change before anything is applied — then turns the
+  correction into a case in the test suite. No retraining, and every rule
+  added is a line a person can read and veto.
 
 ### What it found
 
@@ -54,7 +63,7 @@ the document — never invent one. That restriction is enforced and tested.
 
 No ground truth ships with the bundle, so accuracy is established six ways.
 
-**1 — Test suite: 263 passing.** Every normalization rule, every label alias,
+**1 — Test suite: 309 passing.** Every normalization rule, every label alias,
 document identification across `.txt`/`.xlsx`/`.docx`/`.pdf`, all four
 escalation reasons and their precedence, the classifier, and submission
 validation. 18 cases are pinned after hand-reading both source documents: 7
@@ -163,20 +172,23 @@ Reads `data/`, writes `out/submission.json` (the scored file) and
 python ui/build.py
 ```
 
-Builds the site into `out/site/` — five pages, no framework, no browser
+Builds the site into `out/site/` — six pages, no framework, no browser
 dependencies.
 
 ### Everything else
 
 | Command | What it does |
 |---|---|
-| `python -m pytest tests -q` | 263 tests |
+| `python -m pytest tests -q` | 309 tests |
 | `python eval/mutation.py` | Inject defects, measure detection |
 | `python eval/desk_cases.py` | 31 real-world document quirks |
 | `python eval/audit.py` | Audit a run with no ground truth |
 | `python eval/score.py --truth gt.json` | Score against the organizers' truth |
 | `python run.py --source http://host:8080` | Run against their server |
 | `python run.py --agent bedrock` | Turn the LLM recovery stage on |
+| `python run.py --learned overrides.json` | Apply the desk's own corrections |
+| `python tools/apply_overrides.py` | Report what the desk's corrections would change |
+| `python eval/learned_cases.py` | Re-check every correction the desk has made |
 | `python tools/demo_data.py` | Scramble the data for public sharing |
 | `./deploy.sh <bucket>` | Publish to S3 |
 
@@ -190,7 +202,9 @@ deterministic.
 
 **A clerk opens Today.** It says one thing: *46 drafts have something that
 needs fixing. 20 need you to look. The other 63 match on every detail.* Two
-queues, nothing else — no filters, no browsing.
+queues, nothing else — no filters, no browsing. The fixing queue is already
+in the order to work it: *13 stop and fix first — the wrong party could take
+the cargo. 23 fix before release. 10 fix when you get to it.*
 
 **They open the first.** Shipment `5ALT-01226`, six 40ft high-cube containers
 of coated ivory board, Nantong to Karachi. Two details flagged: consignee and
@@ -209,6 +223,20 @@ is ever sent automatically.
 *"the carrier sent a commercial invoice instead of a bill of lading"* or
 *"a detail is blank on the instruction"* — the reason stated, so the clerk
 knows what to do rather than merely that something failed.
+
+**When the clerk knows better, they say so.** On email 145 the instruction
+reads `APRIL FINE PAPER TRADING` and the draft `APRIL FINE PAPER TRADING
+(MIDDLE EAST) FZE`. Flagging that is correct — no rule should guess whether
+a branch designation makes a different legal entity. The clerk knows, clicks
+*these are the same*, and it is recorded against that exact pair of values
+with their name on it.
+
+Nothing changes on the page, deliberately: silencing a check should never be
+the side effect of one click. `python tools/apply_overrides.py` reports the
+blast radius first — *1 verdict changes, 1 of them by dropping a flag that
+was being raised: email_145 MISMATCH ['shipper'] -> OK* — and `--write` then
+turns the correction into a case in the evaluation suite. The clerk's
+judgement outlives the shipment as an assertion that has to keep passing.
 
 **Search is a separate page**, for finding a specific shipment: filter by
 customer, their country, export port or destination. The filters cascade, so
@@ -232,12 +260,14 @@ src/sdoc/
   fields/         getting the seven fields out, with evidence
   normalize/      whether two values mean the same thing, one file per type
   compare.py      verdicts and escalation precedence
+  severity.py     what a wrong field would actually cost
+  learned.py      corrections the desk has made to the comparator
   classify.py     stage-1 triage
   agents/         the LLM stage: clients, prompts, resolver, triage
   places.py       one settled spelling per port
   labels.py       the shared vocabulary
   pipeline.py     orchestration
-tests/          263 tests
+tests/          309 tests
 eval/           mutation, desk cases, audit, scorer
 ui/             the site: pages, shared lib/, and its build
 tools/          data scrambler for public demos

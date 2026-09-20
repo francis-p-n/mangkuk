@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "overrides": [
+    {
+      "field": "shipper",
+      "si_value": "APRIL FINE PAPER TRADING",
+      "bl_value": "APRIL FINE PAPER TRADING (MIDDLE EAST) FZE",
+      "agree": true,
+      "was": false,
+      "who": "mitchelle@averis.com",
+      "when": "2026-09-20",
+      "note": "Same shipper - our instruction drops the branch designation. The FZE is the entity that books; no rule should guess this, so it is recorded here."
+    }
+  ]
+}
