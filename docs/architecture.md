@@ -163,13 +163,13 @@ injected defects with no collateral false flags. A model cannot beat that, and
 substituting one would trade an explainable rule for an unexplainable weight.
 
 For the extraction stage, fine-tuning needs labelled examples, and the bundle
-ships no ground truth. 126 document pairs from a single generator would teach
+ships no ground truth. 129 document pairs from a single generator would teach
 a model that generator's quirks — exactly the quirks that will not appear in
 the organizers' hidden test set.
 
 The documents *are* valuable, just not as training data:
 
-- the 66 distinct field labels became the alias table in `fields.py`
+- the 66 distinct field labels became the alias table in `fields/aliases.py`
 - the label variants became unit tests, including the traps
 - the clean pairs became mutation hosts — 63 of them, 602 injected defects
 - the real values became `eval/desk_cases.py`, which is what found the

@@ -4,20 +4,20 @@
 
 **What it replaces.** A clerk opening two attachments and eye-comparing seven
 fields. Assuming five minutes per check — an estimate to confirm with the
-operations team, not a measured figure — the 126 checks in this batch are about
-**10.5 hours** of desk time.
+operations team, not a measured figure — the 129 checks in this batch are about
+**11 hours** of desk time.
 
-The system decides 111 of them outright and escalates 15 with the reason
+The system decides 109 of them outright and escalates 20 with the reason
 already stated. At roughly two minutes to action a pre-diagnosed escalation,
-that is about **30 minutes of human time**, against 10.5 hours. The saving is
+that is about **40 minutes of human time**, against 11 hours. The saving is
 in the same order as the work itself, and it scales with volume rather than
 headcount.
 
-**Where the money actually is.** Not the minutes — the 48 defective drafts
+**Where the money actually is.** Not the minutes — the 46 defective drafts
 caught before release. A wrong consignee or port on a released BL means an
 amendment fee, a delayed release, and in the worst case cargo moving against a
 document naming the wrong party. Catching those is worth more than the clerical
-time, and the system caught them at a rate of 43.2% of decided checks.
+time, and the system caught them at a rate of 42.2% of decided checks.
 
 **Why an ops team would actually use it.** The unit on screen is a shipment,
 not an email. The vocabulary is "needs correction", not `MISMATCH`. Every flag
@@ -39,7 +39,8 @@ diagram, security posture and costs in [docs/architecture.md](architecture.md).
 
 **What it is not.** Not a BL generator — the carrier issues the BL. Not an
 auto-sender. Not a replacement for the documentation team; it is an exception
-desk that turns 126 document checks into 25 decisions.
+desk that turns 129 document checks into 20 judgement calls and 46
+ready-to-send corrections.
 
 ## Roadmap
 
