@@ -47,8 +47,9 @@ ready-to-send corrections.
 ### Completing the build
 
 PDF extraction via Textract, which recovers the 15 unreadable checks. An LLM
-adjudicator on Bedrock for the 11.3% classifier residue and for extraction on
-documents the rules cannot parse. Live Graph mailbox ingestion, replacing the
+adjudicator on Bedrock for mail written from a template the rules have never
+seen — on this bundle that is none of it, but a desk's real mailbox is not one
+generator's output — and for extraction on documents the rules cannot parse. Live Graph mailbox ingestion, replacing the
 bundle behind the existing `MailSource` interface. An Outlook add-in, so the
 verification appears beside the email the clerk is already reading rather than
 asking anyone to leave their inbox.

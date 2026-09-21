@@ -146,8 +146,8 @@ Per 1,000 emails, order of magnitude only:
 
 - Lambda, Step Functions, SQS, API Gateway: cents
 - S3 and DynamoDB at this volume: cents
-- Bedrock: only the residue the parsers miss — on the sample corpus that is
-  about 2% of documents
+- Bedrock: only what the parsers miss — on the sample corpus that is about 2%
+  of documents, and no classifications at all
 - Textract: the real variable, and only for image-only PDFs
 
 The dominant cost is Textract, not the model. That is worth knowing before

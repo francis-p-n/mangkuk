@@ -41,7 +41,7 @@ are plainly constructed as five cases of each escalation reason. Folding the
 chasers in makes `missing_attachment` 96 against 5, 5 and 5 for the others.
 
 **3 — The corpus already has a convention for attachment-less workflow mail.**
-All 141 `SI_REQUEST` emails carry zero attachments and say *"Please find
+All 132 `SI_REQUEST` emails carry zero attachments and say *"Please find
 Shipping instruction for 5RUS-…"* — a document named, none attached, and
 nobody would call those `missing_attachment`. Attachment-less workflow mail
 gets a workflow category, not an escalation. The chasers are the BL-side
