@@ -10,39 +10,49 @@ import { Check as CheckIcon, Copy, Mail, TriangleAlert, X } from "lucide-react";
 /**
  * The draft the clerk sends to the carrier.
  *
- * Ported verbatim in substance from ui/lib/views.js. It is written for a
- * person to read, edit and send from their own mailbox - nothing here sends
- * anything, which is the whole posture of the product.
+ * It asks rather than instructs, and the distinction is not politeness. What
+ * the checker compared was the shipping instruction *on our file*. A
+ * disagreement usually means the carrier mistyped something, but it can also
+ * mean the instruction was amended after we filed it and the draft is right -
+ * and a desk that opens by declaring itself the correct reference has to
+ * climb back down in front of a customer when that happens.
+ *
+ * So it names both readings, asks which is right, and offers the amendment
+ * route explicitly. It costs two sentences and it cannot be wrong.
+ *
+ * Written for a person to read, edit and send from their own mailbox -
+ * nothing here sends anything, which is the whole posture of the product.
  */
 export function emailText(s: Result, labels: Labels): string {
   const names = labels.field ?? {};
   const ref = s.oc_number || s.booking_ref || "this shipment";
+  const one = s.defect_fields.length === 1;
   const lines = s.defect_fields
     .map((f) => {
       const c = s.comparisons.find((x) => x.field === f);
       return (
         `${names[f] ?? f}\n` +
-        `  - our shipping instruction says ${c?.si_value}\n` +
-        `  - your draft B/L says ${c?.bl_value}`
+        `  - the shipping instruction on our file says ${c?.si_value}\n` +
+        `  - the draft B/L says ${c?.bl_value}`
       );
     })
     .join("\n\n");
 
-  return `Subject: Draft B/L correction needed - ${ref}
+  return `Subject: Draft B/L for checking - ${ref}
 
 Dear Sir or Madam,
 
 Thank you for the draft bill of lading for ${ref}.
 
-We have checked it against our shipping instruction and found the following ${
-    s.defect_fields.length === 1 ? "difference" : "differences"
-  }:
+We have checked it against the shipping instruction on our file, and ${
+    one ? "one detail appears" : `${s.defect_fields.length} details appear`
+  } to differ:
 
 ${lines}
 
-Our shipping instruction is the correct reference. Please amend the draft and send it back for confirmation.
+Could you confirm which is correct? If the instruction has been amended since we sent it, please point us to the amendment and we will update our copy. Otherwise, please amend the draft and send it back for confirmation.
 
-Thank you for your assistance.
+Thank you for your help.
 
 Best regards,`;
 }

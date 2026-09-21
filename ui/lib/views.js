@@ -99,29 +99,37 @@ window.SDOC.views = (function () {
       <a href="learned.html">what you have taught it</a>.</p>`;
   }
 
+  // Asks rather than instructs, and the distinction is not politeness. What
+  // was compared is the shipping instruction *on our file*. A disagreement
+  // usually means the carrier mistyped something, but it can also mean the
+  // instruction was amended after we filed it and the draft is right - and a
+  // desk that opens by declaring itself the correct reference has to climb
+  // back down in front of a customer when that happens.
   function email(s) {
     const ref = s.oc_number || s.booking_ref || "this shipment";
+    const one = s.defect_fields.length === 1;
     const lines = s.defect_fields.map(f => {
       const c = s.comparisons.find(x => x.field === f);
-      return `${NAMES()[f] || f}\n  - our shipping instruction says ${c.si_value}\n  - your draft B/L says ${c.bl_value}`;
+      return `${NAMES()[f] || f}\n  - the shipping instruction on our file says ${c.si_value}\n  - the draft B/L says ${c.bl_value}`;
     }).join("\n\n");
-    return `Subject: Draft B/L correction needed - ${ref}
+    return `Subject: Draft B/L for checking - ${ref}
 
 Dear Sir or Madam,
 
 Thank you for the draft bill of lading for ${ref}.
 
-We have checked it against our shipping instruction and found the following ${
-      s.defect_fields.length === 1 ? "difference" : "differences"}:
+We have checked it against the shipping instruction on our file, and ${
+      one ? "one detail appears" : s.defect_fields.length + " details appear"} to differ:
 
 ${lines}
 
-Our shipping instruction is the correct reference. Please amend the draft and send it back for confirmation.
+Could you confirm which is correct? If the instruction has been amended since we sent it, please point us to the amendment and we will update our copy. Otherwise, please amend the draft and send it back for confirmation.
 
-Thank you for your assistance.
+Thank you for your help.
 
 Best regards,`;
   }
+
 
   // The full shipment panel, identical wherever it is shown.
   function detail(s) {
