@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
 
@@ -23,21 +24,39 @@ export default function TopBar({ here }: { here: "today" | "search" | "settings"
   return (
     <div className="topbar">
       <div className="topbar-inner">
-        <Link className="brand" href={"/" as never}>
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="22" height="22">
-              <rect width="32" height="32" rx="7" fill="currentColor" />
-              <path
-                d="M9 16.5l5 5 9-11"
-                stroke="var(--paper)"
-                strokeWidth="3.2"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <span className="brand-name">Document checks</span>
+        {/*
+          Two files rather than one recoloured by a CSS filter: the brand blue
+          manages 2.27:1 on the dark paper, which cannot be read, so the dark
+          theme gets its own lighter ink at 6.3:1. Both are declared and CSS
+          shows one, so switching theme never flashes a missing image.
+
+          The name lives on the link, not on either image. Only one image is
+          ever displayed and the other is display:none, which assistive
+          technology skips entirely - so putting the alt text on an image left
+          the link with no name at all in whichever theme hid that one.
+
+          Width and height are set so the row does not reflow as it loads.
+        */}
+        <Link className="brand" href={"/" as never} aria-label="easyLogistics — home">
+          <Image
+            className="brand-logo brand-logo-light"
+            src="/logo.png"
+            alt=""
+            width={432}
+            height={96}
+            sizes="140px"
+            priority
+          />
+          <Image
+            className="brand-logo brand-logo-dark"
+            src="/logo-dark.png"
+            alt=""
+            aria-hidden="true"
+            width={432}
+            height={96}
+            sizes="140px"
+            priority
+          />
         </Link>
 
         <nav aria-label="Sections">

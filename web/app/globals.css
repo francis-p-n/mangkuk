@@ -586,3 +586,24 @@ tr.bad th[scope="row"] {
   .facts { grid-template-columns: 1fr; gap: 3px 0; }
   .facts dd { margin-bottom: 9px; }
 }
+
+/* --- the wordmark ------------------------------------------------------ */
+.topbar .brand { gap: 0; }
+.brand-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+/* Light asset by default; the dark one only where it is needed. Both are in
+   the markup, so switching theme swaps a visibility, not a network request. */
+.brand-logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand-logo-dark { display: block; }
+}
+:root[data-theme="dark"] .brand-logo-light { display: none; }
+:root[data-theme="dark"] .brand-logo-dark { display: block; }
+:root[data-theme="light"] .brand-logo-light { display: block; }
+:root[data-theme="light"] .brand-logo-dark { display: none; }
+
+@media (max-width: 640px) { .brand-logo { height: 22px; } }
