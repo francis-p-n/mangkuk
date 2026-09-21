@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
-"""Build a constructed shipment thread, so the filing can be demonstrated.
+"""Build one shipment's full correspondence, so the filing can be demonstrated.
 
-    python tools/thread_demo.py              # writes data/thread-demo/
-    python run.py --source data/thread-demo --out out/thread
+    python tools/thread_demo.py
+    python run.py --source data/thread-demo --out out/thread \\
+                  --sample data/thread-demo/sample_submission.json
     python tools/supabase_load.py --results out/thread/results-demo.json
 
 WHY THIS EXISTS, AND WHAT IT IS NOT
 
 The supplied bundle has no threads. Every reference in it belongs to exactly
-one email - 388 OC numbers across 388 emails, 222 bookings across 222, ten B/L
-numbers across ten - so all 520 shipment files hold a single message and the
+one email - 388 OC numbers, 222 bookings, 114 B/L numbers, and not one of them
+appears twice - so all 520 shipment files hold a single message and the
 grouping never has anything to group. That is a fact about the sample data,
-not about the product, but it means the central idea cannot be shown using it.
+not about the product, and it means the central idea cannot be shown with it.
 
-So these four emails are written, not collected. They are the ordinary life of
-one correction: the carrier sends a draft, the desk finds the consignee wrong,
-the carrier sends it again fixed, and the shipment closes. Every name, port and
-reference in them is invented.
+So this is one container's paperwork from booking to arrival, written rather
+than collected: twelve emails, a draft that is wrong twice before it is right,
+and the invoice and arrival notice that follow. Every name, port and reference
+is invented.
 
 It is kept in its own directory and loaded as its own run for one reason: the
 scored submission is 520 emails and must stay 520 emails. Nothing here can
-reach it.
-
-The ids run from email_9001 so that anything constructed is obvious at a
+reach it. The ids run from 9001 so that anything constructed is obvious at a
 glance against a corpus numbered 001 to 520 - and so the bundle loader, which
 globs email_*.json, can see them at all.
 """
@@ -40,18 +39,25 @@ BOOKING = "MEDUTH550281"
 BL = "MEDUTH550281X"
 
 SHIPPER = "KIANDA PULP & PAPER SDN BHD"
-RIGHT_CONSIGNEE = "BRAEMAR STATIONERY LIMITED"
+CONSIGNEE = "BRAEMAR STATIONERY LIMITED"
 WRONG_CONSIGNEE = "BRAEMORE PACKAGING PTE LTD"
 POL = "PORT KLANG (WESTPORT), MALAYSIA (MYPKG)"
 POD = "FELIXSTOWE, UNITED KINGDOM (GBFXT)"
 BOXES = "4 x 40'HC"
 WEIGHT = "88,240 KGS"
+WRONG_WEIGHT = "86,240 KGS"
 
-SI = f"""SHIPPING INSTRUCTION
+DESK = "operations@kiandapulp.example"
+CARRIER = "docs@northernline.example"
+FINANCE = "billing@northernline.example"
+
+
+def si() -> str:
+    return f"""SHIPPING INSTRUCTION
 
 Shipper/Exporter: {SHIPPER}
-To the Order of: {RIGHT_CONSIGNEE}
-NOTIFY PARTY: {RIGHT_CONSIGNEE}
+To the Order of: {CONSIGNEE}
+NOTIFY PARTY: {CONSIGNEE}
 Port of Loading (POL): {POL}
 PORT OF DISCHARGE: {POD}
 No. of Containers: {BOXES}
@@ -63,86 +69,159 @@ Vessel: NORTHERN ADVANCE  Voy: 118W
 """
 
 
-def bl(consignee: str) -> str:
+def bl(consignee: str, weight: str) -> str:
     return f"""BILL OF LADING (DRAFT)
 
 B/L Number: {BL}
 SHIPPER: {SHIPPER}
 Consignee (Non-Negotiable): {consignee}
-Notify: {RIGHT_CONSIGNEE}
+Notify: {CONSIGNEE}
 Load Port: {POL}
 Port of Discharge: {POD}
 No. of Containers: {BOXES}
-GROSS WEIGHT: {WEIGHT}
+GROSS WEIGHT: {weight}
 Booking: {BOOKING}
 Ocean Vessel: NORTHERN ADVANCE  Voyage: 118W
 """
 
 
-# The thread. Each email names the shipment by at least one of its three
-# references, which is what files them together - the last one quotes only the
-# B/L number, which is how a carrier usually replies about a document and the
-# reason that alias is an edge at all.
-THREAD = [
-    {
-        "email_id": "email_9001",
-        "from": "operations@kiandapulp.example",
-        "subject": f"TO CONFIRM DOCS _ {OC} _ FELIXSTOWE_UK _ "
-                   f"{RIGHT_CONSIGNEE} _ {BOOKING}",
-        "body": f"""Hi,
+def note(eid, sender, subject, body, si_text=None, bl_text=None):
+    e = {"email_id": eid, "from": sender, "subject": subject, "body": body,
+         "attachments": []}
+    if si_text:
+        e["attachments"].append(f"attachments/{eid}_SI.txt")
+        e["_si"] = si_text
+    if bl_text:
+        e["attachments"].append(f"attachments/{eid}_BL.txt")
+        e["_bl"] = bl_text
+    return e
 
-Attached are the SI and draft BL for OC {OC} (WOODFREE PAPER). Please check
-the details and confirm.
+
+# One container, booking to arrival. Three drafts: the first has two things
+# wrong, the second fixes one of them, the third is right. That shape matters -
+# a demo where the first correction lands says nothing about what a desk
+# actually spends its week on.
+THREAD = [
+    note("email_9001", CARRIER,
+         f"BOOKING CONFIRMED _ {BOOKING} _ NORTHERN ADVANCE 118W",
+         f"""Dear Sir or Madam,
+
+Booking {BOOKING} is confirmed on NORTHERN ADVANCE voyage 118W, Port Klang to
+Felixstowe. Cut-off is Thursday 14:00. Please send your shipping instruction.
+
+Regards,
+Documentation Desk
+Northern Line
+"""),
+
+    note("email_9002", DESK,
+         f"SHIPPING INSTRUCTION _ {OC} _ {BOOKING}",
+         f"""Hi,
+
+Shipping instruction attached for OC {OC}, booking {BOOKING}. Four 40' high
+cubes of woodfree paper to Felixstowe.
+
+Please send the draft B/L for checking.
 
 Best Regards,
 Operations
 Kianda Pulp & Paper Sdn Bhd
 """,
-        "attachments": ["attachments/email_9001_SI.txt",
-                        "attachments/email_9001_BL.txt"],
-        "_si": SI,
-        "_bl": bl(WRONG_CONSIGNEE),
-    },
-    {
-        "email_id": "email_9002",
-        "from": "docs@northernline.example",
-        "subject": f"RE: TO CONFIRM DOCS _ {OC} _ FELIXSTOWE_UK",
-        "body": f"""Dear Sir or Madam,
+         si_text=si()),
 
-Thank you for your message regarding booking {BOOKING}. We are checking the
-consignee against our records and will revert with an amended draft shortly.
+    note("email_9003", CARRIER,
+         f"DRAFT BL FOR CHECKING _ {OC} _ FELIXSTOWE_UK _ {BOOKING}",
+         f"""Dear Sir or Madam,
+
+Please find the draft bill of lading for OC {OC}. Kindly check and confirm.
 
 Regards,
 Documentation Desk
 Northern Line
 """,
-        "attachments": [],
-    },
-    {
-        "email_id": "email_9003",
-        "from": "docs@northernline.example",
-        "subject": f"AMENDED DRAFT BL _ {OC} _ {BOOKING}",
-        "body": f"""Dear Sir or Madam,
+         si_text=si(), bl_text=bl(WRONG_CONSIGNEE, WRONG_WEIGHT)),
 
-Please find the amended draft bill of lading for OC {OC}. The consignee has
-been corrected to {RIGHT_CONSIGNEE} as per your shipping instruction.
+    note("email_9004", CARRIER,
+         f"RE: DRAFT BL FOR CHECKING _ {OC}",
+         f"""Dear Sir or Madam,
 
-Kindly confirm so we may release the original.
+Thank you for your message on booking {BOOKING}. We are checking the consignee
+and the gross weight against our records and will revert.
+
+Regards,
+Documentation Desk
+Northern Line
+"""),
+
+    note("email_9005", CARRIER,
+         f"AMENDED DRAFT BL _ {OC} _ {BOOKING}",
+         f"""Dear Sir or Madam,
+
+Amended draft attached for OC {OC}. The consignee has been corrected to
+{CONSIGNEE}.
 
 Regards,
 Documentation Desk
 Northern Line
 """,
-        "attachments": ["attachments/email_9003_SI.txt",
-                        "attachments/email_9003_BL.txt"],
-        "_si": SI,
-        "_bl": bl(RIGHT_CONSIGNEE),
-    },
-    {
-        "email_id": "email_9004",
-        "from": "docs@northernline.example",
-        "subject": f"B/L {BL} - originals released",
-        "body": f"""Dear Sir or Madam,
+         si_text=si(), bl_text=bl(CONSIGNEE, WRONG_WEIGHT)),
+
+    note("email_9006", DESK,
+         f"RE: AMENDED DRAFT BL _ {OC} _ gross weight still differs",
+         f"""Hi,
+
+Thank you. The consignee is correct now. The gross weight on the draft still
+reads {WRONG_WEIGHT} where our instruction says {WEIGHT}.
+
+Could you confirm which is right? If the instruction has been amended since we
+sent it, please point us to the amendment.
+
+Best Regards,
+Operations
+Kianda Pulp & Paper Sdn Bhd
+"""),
+
+    note("email_9007", CARRIER,
+         f"RE: {OC} _ weight confirmed from VGM",
+         f"""Dear Sir or Madam,
+
+Checked against the VGM for booking {BOOKING}. You are correct - {WEIGHT} is
+the figure. The draft carried a transposition. Amended copy to follow.
+
+Regards,
+Documentation Desk
+Northern Line
+"""),
+
+    note("email_9008", CARRIER,
+         f"AMENDED DRAFT BL (2) _ {OC} _ {BOOKING}",
+         f"""Dear Sir or Madam,
+
+Second amended draft for OC {OC}, with the gross weight corrected to {WEIGHT}.
+
+Kindly confirm so we may release the originals.
+
+Regards,
+Documentation Desk
+Northern Line
+""",
+         si_text=si(), bl_text=bl(CONSIGNEE, WEIGHT)),
+
+    note("email_9009", DESK,
+         f"RE: AMENDED DRAFT BL (2) _ {OC} _ approved",
+         f"""Hi,
+
+Checked and approved. All seven details match our instruction. Please release
+the originals for booking {BOOKING}.
+
+Best Regards,
+Operations
+Kianda Pulp & Paper Sdn Bhd
+"""),
+
+    note("email_9010", CARRIER,
+         f"B/L {BL} _ originals released",
+         f"""Dear Sir or Madam,
 
 The originals for B/L {BL} (booking {BOOKING}) have been released and are
 available for collection at our Port Klang counter.
@@ -150,12 +229,32 @@ available for collection at our Port Klang counter.
 Regards,
 Documentation Desk
 Northern Line
-""",
-        # No OC. It files with the rest on the booking, and carries the B/L
-        # number that emails 9001 and 9003 also carry on their drafts - the
-        # alias that joins a carrier's document reply to the shipment.
-        "attachments": [],
-    },
+"""),
+
+    note("email_9011", FINANCE,
+         f"INVOICE 5250099 _ {BOOKING} _ ocean freight",
+         f"""Dear Sir or Madam,
+
+Please find our invoice 5250099 for ocean freight on booking {BOOKING},
+NORTHERN ADVANCE 118W. Payment terms 30 days.
+
+Regards,
+Billing
+Northern Line
+"""),
+
+    note("email_9012", CARRIER,
+         f"ARRIVAL NOTICE _ {BOOKING} _ FELIXSTOWE",
+         f"""Dear Sir or Madam,
+
+NORTHERN ADVANCE voyage 118W is scheduled to berth at Felixstowe on the 19th.
+Four containers under booking {BOOKING} will be available for collection after
+customs clearance.
+
+Regards,
+Documentation Desk
+Northern Line
+"""),
 ]
 
 
@@ -166,17 +265,16 @@ def main() -> int:
     (OUT / "attachments").mkdir()
 
     for e in THREAD:
-        si, bl_text = e.pop("_si", None), e.pop("_bl", None)
-        if si:
+        si_text, bl_text = e.pop("_si", None), e.pop("_bl", None)
+        if si_text:
             (OUT / "attachments" / f"{e['email_id']}_SI.txt").write_text(
-                si, encoding="utf-8")
+                si_text, encoding="utf-8")
         if bl_text:
             (OUT / "attachments" / f"{e['email_id']}_BL.txt").write_text(
                 bl_text, encoding="utf-8")
         (OUT / "inbox" / f"{e['email_id']}.json").write_text(
             json.dumps(e, indent=1), encoding="utf-8")
 
-    # The bundle loader expects one; a thread has no scoring to do.
     (OUT / "sample_submission.json").write_text(
         json.dumps({e["email_id"]: {
             "category": "GENERAL", "status": "OK", "review_reason": None,
@@ -184,26 +282,27 @@ def main() -> int:
         } for e in THREAD}, indent=1), encoding="utf-8")
 
     (OUT / "README.md").write_text(
-        "# A constructed thread\n\n"
-        "Four emails written to show one shipment being corrected: a draft "
-        "with the wrong consignee, the carrier acknowledging, an amended "
-        "draft that matches, and the release notice.\n\n"
-        "Every name, port and reference here is invented. The supplied bundle "
+        "# One shipment, twelve emails\n\n"
+        "A constructed correspondence: booking confirmed, instruction sent, a "
+        "draft bill of lading with two things wrong, one correction that fixes "
+        "only one of them, a second that fixes the other, approval, release, "
+        "invoice and arrival notice.\n\n"
+        "Every name, port and reference is invented. The supplied bundle "
         "contains no threads at all - each of its 520 emails is the only one "
         "that mentions its reference - so the filing cannot be demonstrated "
-        "with it. This is not sample data and is never part of the scored "
-        "run, which is 520 emails and stays 520 emails.\n\n"
-        "The last email quotes only the B/L number. It files itself with the "
-        "other three through that alias alone, which is how a carrier usually "
-        "replies about a document.\n",
+        "with it. This is not sample data and is never part of the scored run, "
+        "which is 520 emails and stays 520 emails.\n\n"
+        "All twelve file together on the booking. The three drafts also share "
+        "a B/L number, which is the reference a carrier quotes when replying "
+        "about a document.\n",
         encoding="utf-8")
 
     print(f"wrote {OUT.relative_to(ROOT)}: {len(THREAD)} emails, "
           f"{len(list((OUT / 'attachments').iterdir()))} attachments")
-    print(f"  references: OC {OC}, booking {BOOKING}, B/L {BL}")
+    print(f"  one shipment: OC {OC}, booking {BOOKING}, B/L {BL}")
     print("\nnext:")
-    print("  python run.py --source data/thread-demo --out out/thread")
-    print("  python tools/supabase_load.py --results out/thread/results-demo.json")
+    print("  python run.py --source data/thread-demo --out out/thread \\")
+    print("                --sample data/thread-demo/sample_submission.json")
     return 0
 
 

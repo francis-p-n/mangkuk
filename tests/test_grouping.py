@@ -150,8 +150,9 @@ class TestTheConstructedThread:
     """The fixture that makes the filing demonstrable.
 
     Built by tools/thread_demo.py and kept out of the scored bundle. These
-    assert the thing the corpus cannot: four emails about one shipment,
-    filed together, ending in a correction that closes it.
+    assert what the corpus cannot: one container's paperwork from booking to
+    arrival, filed together, with a draft that is wrong twice before it is
+    right.
     """
 
     @pytest.fixture(scope="class")
@@ -162,32 +163,47 @@ class TestTheConstructedThread:
             pytest.skip("run tools/thread_demo.py to build the fixture")
         return {r.email_id: r for r in run(BundleMailSource(src))}
 
-    def test_all_four_file_as_one_shipment(self, thread):
+    def test_the_whole_correspondence_is_one_shipment(self, thread):
         emails = [{"email_id": r.email_id, "oc_number": r.oc_number,
                    "booking_ref": r.booking_ref} for r in thread.values()]
-        assert folders(emails) == [set(thread)], "one folder, four emails"
+        assert folders(emails) == [set(thread)]
+        assert len(thread) == 12
+
+    def test_mail_that_is_not_a_document_check_files_here_too(self, thread):
+        """A booking confirmation, an invoice and an arrival notice belong in
+        the shipment's file as much as the drafts do."""
+        kinds = {r.category for r in thread.values()}
+        assert {"BL_COMPARISON", "GENERAL", "INVOICE_QUERY"} <= kinds
+
+    def test_the_first_draft_is_wrong_in_two_places(self, thread):
+        first = thread["email_9003"]
+        assert first.status == "MISMATCH"
+        assert sorted(first.defect_fields) == ["consignee", "gross_weight_kg"]
+
+    def test_the_first_correction_fixes_only_one_of_them(self, thread):
+        """The shape that matters. A demo where the first correction lands
+        says nothing about what a desk spends its week on."""
+        second = thread["email_9005"]
+        assert second.status == "MISMATCH"
+        assert second.defect_fields == ["gross_weight_kg"]
+
+    def test_the_second_correction_closes_it(self, thread):
+        assert thread["email_9008"].status == "OK"
+        assert thread["email_9008"].defect_fields == []
+
+    def test_the_shipment_therefore_ends_resolved(self, thread):
+        order = sorted(thread.values(), key=lambda r: r.email_id)
+        comparisons = [r for r in order if r.category == "BL_COMPARISON"]
+        assert comparisons[0].status != "OK"
+        assert comparisons[-1].status == "OK"
 
     def test_the_release_notice_files_on_its_booking_alone(self, thread):
-        """It carries no OC - the booking is the only thing filing it."""
-        last = thread["email_9004"]
+        last = thread["email_9010"]
         assert last.oc_number is None
         assert last.booking_ref == "MEDUTH550281"
 
-    def test_the_first_draft_is_wrong_and_the_amended_one_is_not(self, thread):
-        assert thread["email_9001"].status == "MISMATCH"
-        assert thread["email_9001"].defect_fields == ["consignee"]
-        assert thread["email_9003"].status == "OK"
-
-    def test_the_shipment_therefore_closes(self, thread):
-        """A folder that failed and then passed is resolved, which is the
-        answer to 'what happens when they fix it'."""
-        order = sorted(thread.values(), key=lambda r: r.email_id)
-        comparisons = [r for r in order if r.category == "BL_COMPARISON"]
-        assert comparisons[0].status == "MISMATCH"
-        assert comparisons[-1].status == "OK"
-
     def test_the_bl_number_is_read_off_the_draft(self, thread):
-        """It is printed on the bill of lading and never on the instruction,
-        so it is only found by reading both documents."""
-        assert thread["email_9001"].shipment.get("bl_number") == "MEDUTH550281X"
+        """Printed on the bill of lading and never on the instruction, so it
+        is only found by reading both documents."""
         assert thread["email_9003"].shipment.get("bl_number") == "MEDUTH550281X"
+        assert thread["email_9008"].shipment.get("bl_number") == "MEDUTH550281X"
