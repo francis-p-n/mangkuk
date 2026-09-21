@@ -188,6 +188,7 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .tag.fix { background: var(--fix-wash); color: var(--fix); }
 .tag.look { background: var(--look-wash); color: var(--look); }
 .tag.fine { background: var(--fine-wash); color: var(--fine); }
+.tag.idle { background: var(--sunk); color: var(--ink-faint); }
 
 .band-why {
   display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline;
@@ -660,7 +661,12 @@ tr.bad th[scope="row"] {
 .thread-item {
   display: flex; gap: 11px; padding: 13px 16px;
   border-bottom: 1px solid var(--rule);
+  width: 100%; text-align: left; background: none; border-left: 0;
+  border-right: 0; border-top: 0; font: inherit; color: inherit;
+  cursor: pointer;
 }
+.thread-item:hover { background: var(--sunk); }
+.thread-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .thread li:last-child .thread-item { border-bottom: 0; }
 .thread-item svg { color: var(--ink-faint); flex: none; margin-top: 3px; }
 .thread-item.is-open { background: var(--brand-wash); }
@@ -694,4 +700,31 @@ tr.bad th[scope="row"] {
   background: var(--sunk); border: 1px solid var(--rule);
   color: var(--ink-faint); font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------- the panel beside the list */
+
+/* A link out to the whole file, above the one check being shown. */
+.panel-jump { margin: 0; padding: 14px 22px 0; }
+.panel-jump a {
+  font-size: 13px; color: var(--brand); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.panel-jump a:hover { text-decoration: underline; }
+
+/* The shape of the answer while it is on its way: roughly where the heading,
+   the verdict and the seven rows will be, so nothing jumps when they land. */
+.skel { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+.skel-line, .skel-tag, .skel-row {
+  display: block; border-radius: 6px; background: var(--sunk);
+  animation: skel-pulse 1.15s ease-in-out infinite;
+}
+.skel-line { height: 13px; }
+.skel-line.w60 { width: 60%; } .skel-line.w35 { width: 35%; }
+.skel-line.w80 { width: 80%; }
+.skel-tag { height: 22px; width: 124px; border-radius: 999px; }
+.skel-row { height: 32px; margin-top: 2px; }
+@keyframes skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) {
+  .skel-line, .skel-tag, .skel-row { animation: none; }
 }

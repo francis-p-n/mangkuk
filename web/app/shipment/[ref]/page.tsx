@@ -3,12 +3,10 @@ import { notFound } from "next/navigation";
 import { currentRun, one, NotConfigured } from "@/lib/supabase";
 import { folderFor, folderState, referenceOf } from "@/lib/shipments";
 import TopBar from "@/components/TopBar";
-import Detail from "@/components/Detail";
+import Correspondence from "@/components/Correspondence";
 import Setup from "@/components/Setup";
 import StatusIcon from "@/components/StatusIcon";
 import { who, route } from "@/lib/format";
-import { isComparison } from "@/lib/graph";
-import { Mail } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -104,62 +102,19 @@ export default async function ShipmentPage({
           </p>
         )}
 
-        <main className="cols" id="results">
-          <section className="card" aria-labelledby="thread-heading">
-            <h2 className="listtop" id="thread-heading">
-              The correspondence
-            </h2>
-            <ol className="thread">
-              {emails.map((e) => {
-                const isOpen = e.email_id === decisive?.email_id;
-                // A booking confirmation belongs in the file, but it was
-                // never compared - so it reports what kind of mail it is
-                // rather than a verdict it does not have.
-                const checked = isComparison(e);
-                const tone = checked ? labels.tone?.[e.status] ?? "fine" : "idle";
-                return (
-                  <li key={e.email_id}>
-                    <div className={`thread-item${isOpen ? " is-open" : ""}`}>
-                      <Mail size={14} strokeWidth={2} aria-hidden="true" />
-                      <div className="thread-body">
-                        <span className="thread-subject">
-                          {e.subject ?? "(no subject)"}
-                        </span>
-                        <span className="thread-from">{e.sender}</span>
-                        <span className={`thread-state ${tone}`}>
-                          <StatusIcon
-                            status={checked ? e.status : "UNCHECKED"}
-                            size={12}
-                          />
-                          {checked
-                            ? labels.status?.[e.status] ?? e.status
-                            : labels.category?.[e.category] ?? "No check"}
-                          {isOpen && emails.length > 1 && " — shown below"}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-            {emails.length === 1 && (
-              <p className="thread-note">
-                Only one email mentions this reference. Anything else the
-                carrier sends about it files itself here.
-              </p>
-            )}
-          </section>
-
-          <section className="card" aria-labelledby="shipment-name" aria-live="polite">
-            {detail ? (
-              <Detail s={detail} labels={labels} />
-            ) : (
-              <p className="allclear" style={{ padding: "28px 22px" }}>
-                Nothing in this file has been compared.
-              </p>
-            )}
-          </section>
-        </main>
+        <Correspondence
+          runId={run.id}
+          emails={emails.map((e) => ({
+            email_id: e.email_id,
+            category: e.category,
+            status: e.status,
+            subject: e.subject,
+            sender: e.sender,
+            severity: e.severity,
+          }))}
+          labels={labels}
+          initial={detail}
+        />
 
         <p className="foot">
           Nothing here is sent automatically. You send every email yourself.

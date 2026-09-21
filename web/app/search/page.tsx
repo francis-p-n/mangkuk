@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { currentRun, search, one, NotConfigured, PAGE } from "@/lib/supabase";
-import ShipmentRow, { issue } from "@/components/ShipmentRow";
-import Detail from "@/components/Detail";
+import { issue } from "@/components/ShipmentRow";
+import ShipmentList from "@/components/ShipmentList";
+import type { Entry } from "@/components/ShipmentList";
 import Setup from "@/components/Setup";
-import { groupIntoShipments, shipmentKey } from "@/lib/shipments";
+import { groupIntoShipments } from "@/lib/shipments";
 import StatusIcon from "@/components/StatusIcon";
 import { LayoutList, Search as SearchIcon } from "lucide-react";
 import TopBar from "@/components/TopBar";
@@ -76,6 +77,21 @@ export default async function Search({
   // chasing. The list is folders, and a folder with nothing wrong is still a
   // folder.
   const shipments = groupIntoShipments(rows);
+
+  // One entry per file. The deciding check carries the name, the route and
+  // the state; only a file with no check in it at all falls back to its
+  // newest email, which is then all there is to show.
+  const entries: Entry[] = shipments.map((sp) => {
+    const face = sp.decisive ?? sp.emails[sp.emails.length - 1];
+    return {
+      key: sp.key,
+      row: face,
+      href: `/shipment/${encodeURIComponent(sp.key)}`,
+      count: sp.emails.length,
+      resolved: sp.resolved,
+    };
+  });
+
   const labels = run.labels;
   const keep = (extra: Record<string, string>) => {
     const p = new URLSearchParams();
@@ -169,57 +185,20 @@ export default async function Search({
         {rows.length} shipment{rows.length === 1 ? "" : "s"} shown.
       </p>
 
-      <main className="cols" id="results">
-        <section className="card" aria-labelledby="list-heading">
-          {/* Name what is in the list, not that a filter is on. "Filtered"
-              tells the reader something they already did; the label of the
-              filter tells them what they are looking at. */}
-          <h2 className="listtop" id="list-heading">
-            {FILTERS.find((f) => f.value === status)?.label ?? "Every shipment"}
-            {q ? ` matching “${q}”` : ""}
-          </h2>
-          <ul>
-            {shipments.length === 0 ? (
-              <li className="allclear">
-                {q
-                  ? `Nothing matches “${q}”. Try a customer name, an OC number, a port or a vessel.`
-                  : "Nothing in this filter. Choose Everything to see the whole run."}
-              </li>
-            ) : (
-              shipments.map((sp) => {
-                // The deciding check carries the name, the route and the
-                // state. Only a file with no check in it at all falls back to
-                // its newest email, which is then all there is to show.
-                const face = sp.decisive ?? sp.emails[sp.emails.length - 1];
-                return (
-                  <li key={sp.key}>
-                    <ShipmentRow
-                      s={face}
-                      labels={labels}
-                      href={`/shipment/${encodeURIComponent(sp.key)}`}
-                      current={selected?.email_id === face.email_id}
-                      count={sp.emails.length}
-                      resolved={sp.resolved}
-                    />
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </section>
-
-        <section className="card" aria-labelledby="shipment-name" aria-live="polite">
-          {selected ? (
-            <Detail s={selected} labels={labels} />
-          ) : (
-            <p className="allclear" style={{ padding: "28px 22px" }}>
-              {sp.id
-                ? `There is no shipment ${sp.id} in this run.`
-                : "Choose a shipment on the left to see the seven details that were checked."}
-            </p>
-          )}
-        </section>
-      </main>
+      <ShipmentList
+        runId={run.id}
+        entries={entries}
+        labels={labels}
+        initial={selected}
+        heading={`${FILTERS.find((f) => f.value === status)?.label ?? "Every shipment"}${
+          q ? ` matching “${q}”` : ""
+        }`}
+        empty={
+          q
+            ? `Nothing matches “${q}”. Try a customer name, an OC number, a port or a vessel.`
+            : "Nothing in this filter. Choose Everything to see the whole run."
+        }
+      />
 
       <p className="foot">
         {selected

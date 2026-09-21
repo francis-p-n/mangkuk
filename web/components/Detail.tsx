@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Result, Comparison } from "@/lib/format";
 import type { Labels } from "@/lib/supabase";
 import { who, cargo } from "@/lib/format";
+import { isComparison } from "@/lib/graph";
 import StatusIcon from "./StatusIcon";
 import EmailPanel from "./EmailPanel";
 import { Check as CheckIcon, Copy, Mail, TriangleAlert, X } from "lucide-react";
@@ -100,7 +101,13 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
   const [draft, setDraft] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const tone = labels.tone?.[s.status] ?? "fine";
+  // Mail that was never a document check can be opened here too - the
+  // instruction that started the shipment, the arrival notice that ended it.
+  // It is stored as OK because nothing was asked of it, and announcing that
+  // the documents "agree on every detail" about a booking confirmation is a
+  // comparison this product never ran.
+  const checked = isComparison(s);
+  const tone = checked ? labels.tone?.[s.status] ?? "fine" : "idle";
   const n = s.defect_fields.length;
   // Symmetric on purpose. What the comparison established is that the two
   // documents disagree - not which of them is wrong. Usually it is the draft,
@@ -108,8 +115,9 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
   // been told the draft is wrong will ask a carrier to amend a correct bill to
   // match it. Naming a culprit the check cannot identify is how this tool
   // would cause the error it exists to prevent.
-  const verdict =
-    s.status === "MISMATCH"
+  const verdict = !checked
+    ? `This is ${labels.category_blurb?.[s.category] ?? "not a document check"}. Nothing was compared.`
+    : s.status === "MISMATCH"
       ? `${n === 1 ? "One detail" : n === 2 ? "Two details" : `${n} details`} ${
           n === 1 ? "disagrees" : "disagree"
         } between your instruction and the carrier's draft.`
@@ -140,8 +148,10 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
 
       <p className="verdict">
         <span className={`tag ${tone}`}>
-          <StatusIcon status={s.status} size={13} />
-          {labels.status?.[s.status] ?? s.status}
+          <StatusIcon status={checked ? s.status : "UNCHECKED"} size={13} />
+          {checked
+            ? labels.status?.[s.status] ?? s.status
+            : labels.category?.[s.category] ?? "No check"}
         </span>
         <span>{verdict}</span>
       </p>
@@ -171,8 +181,8 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
         </div>
       )}
 
-      <h3 id="checked-heading">What we checked</h3>
-      {s.comparisons?.length ? (
+      {checked && <h3 id="checked-heading">What we checked</h3>}
+      {checked && s.comparisons?.length ? (
         <>
           <div
             className="table-scroll"
@@ -207,9 +217,9 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
             </p>
           )}
         </>
-      ) : (
+      ) : checked ? (
         <p className="nothing">None of the seven details could be compared.</p>
-      )}
+      ) : null}
 
       {bad.length > 0 && (
         <>
@@ -243,7 +253,7 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
         </>
       )}
 
-      {s.status === "MISMATCH" && (
+      {checked && s.status === "MISMATCH" && (
         <>
           <div className="buttons">
             <button
