@@ -2,7 +2,7 @@
 
 **Team mangkuk — team submission**
 
-[Watch the video](#) · [See the slide deck](#)
+### 🌐 [Live site](https://mangkuk-git-main-francis-p-ns-projects.vercel.app) &nbsp;·&nbsp; 🎬 [Video](#) &nbsp;·&nbsp; 📊 [Slide deck](#)
 
 ---
 

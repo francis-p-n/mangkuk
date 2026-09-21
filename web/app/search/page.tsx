@@ -30,9 +30,13 @@ export default async function Search({
         <Setup
           title="No run loaded yet"
           detail="Nothing is marked current in the database."
-          commands={[
+          local={[
             "python run.py && python tools/demo_data.py",
             "python tools/supabase_load.py",
+          ]}
+          deployed={[
+            "Apply supabase/migrations/0001_results.sql in the SQL editor",
+            "python tools/supabase_load.py  (from your machine)",
           ]}
         />
       );
@@ -47,8 +51,13 @@ export default async function Search({
       return (
         <Setup
           title="Supabase is not configured"
-          detail="Set the project URL and anon key in web/.env.local."
-          commands={["cp ../.env.example .env.local", "npm run dev"]}
+          detail="The project URL and anon key are not set."
+          local={["cp ../.env.example .env.local", "npm run dev"]}
+          deployed={[
+            "Settings -> Environment Variables -> NEXT_PUBLIC_SUPABASE_URL",
+            "Settings -> Environment Variables -> NEXT_PUBLIC_SUPABASE_ANON_KEY",
+            "Set both for Production, then Redeploy",
+          ]}
         />
       );
     }

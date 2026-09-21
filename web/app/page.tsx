@@ -18,10 +18,15 @@ export default async function Today() {
       return (
         <Setup
           title="No run loaded yet"
-          detail="The database is reachable but no run is marked current. Build one and load it."
-          commands={[
+          detail="The database is reachable, but nothing is marked current."
+          local={[
             "python run.py && python tools/demo_data.py",
             "python tools/supabase_load.py",
+          ]}
+          deployed={[
+            "Apply supabase/migrations/0001_results.sql in the SQL editor",
+            "python run.py && python tools/demo_data.py",
+            "python tools/supabase_load.py  (from your machine)",
           ]}
         />
       );
@@ -35,10 +40,12 @@ export default async function Today() {
       return (
         <Setup
           title="Supabase is not configured"
-          detail="Copy .env.example to .env.local in web/ and fill in the project URL and anon key."
-          commands={[
-            "cp ../.env.example .env.local",
-            "npm run dev",
+          detail="The project URL and anon key are not set."
+          local={["cp ../.env.example .env.local", "npm run dev"]}
+          deployed={[
+            "Settings -> Environment Variables -> NEXT_PUBLIC_SUPABASE_URL",
+            "Settings -> Environment Variables -> NEXT_PUBLIC_SUPABASE_ANON_KEY",
+            "Set both for Production, then Redeploy",
           ]}
         />
       );
