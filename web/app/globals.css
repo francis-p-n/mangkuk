@@ -682,3 +682,12 @@ tr.bad th[scope="row"] {
   margin: 0; padding: 13px 16px; border-top: 1px solid var(--rule);
   color: var(--ink-faint); font-size: 13.5px; line-height: 1.6;
 }
+
+/* How many emails are filed under one shipment. Only shown when there is
+   more than one, because "1 email" is not information. */
+.row-count {
+  margin-left: 8px; padding: 1px 7px; border-radius: 999px;
+  background: var(--sunk); border: 1px solid var(--rule);
+  color: var(--ink-faint); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

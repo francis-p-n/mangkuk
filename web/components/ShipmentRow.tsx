@@ -40,7 +40,10 @@ type Props = {
   labels: Labels;
   href?: string;
   current?: boolean;
-  onSelect?: () => void;
+  /** How many emails are filed under this shipment. */
+  count?: number;
+  /** It failed once and a later draft came back clean. */
+  resolved?: boolean;
 };
 
 /**
@@ -48,7 +51,14 @@ type Props = {
  * a button when the detail opens beside it - the same split the static site
  * makes, for the same reason.
  */
-export default function ShipmentRow({ s, labels, href, current }: Props) {
+export default function ShipmentRow({
+  s,
+  labels,
+  href,
+  current,
+  count = 1,
+  resolved = false,
+}: Props) {
   const tone = labels.tone?.[s.status] ?? "fine";
   const where = [
     s.oc_number || s.booking_ref || "no reference",
@@ -60,7 +70,15 @@ export default function ShipmentRow({ s, labels, href, current }: Props) {
   // The band replaces the status tag on a mismatch: "Needs fixing" is already
   // obvious from the queue it sits in, and how urgently is what the reader
   // does not yet know.
-  const badge = s.severity ? (
+  // A file that was wrong and is now right reads as its own thing. Showing it
+  // as plain "Fine" loses the fact that somebody chased it, which is the part
+  // a clerk wants credit for and the part an auditor wants to see.
+  const badge = resolved ? (
+    <span className="vis-tag fine">
+      <StatusIcon status="OK" size={12} />
+      Corrected
+    </span>
+  ) : s.severity ? (
     <span className={`vis-tag band ${s.severity}`}>
       <StatusIcon status={s.status} size={12} />
       {labels.band?.[s.severity] ?? s.severity}
@@ -78,7 +96,12 @@ export default function ShipmentRow({ s, labels, href, current }: Props) {
       <span className="where">{where}</span>
       <span className={`issue ${tone}`}>
         {badge}
-        {issue(s, labels)}
+        {resolved ? "Corrected on a later draft" : issue(s, labels)}
+        {count > 1 && (
+          <span className="row-count">
+            {count} emails
+          </span>
+        )}
       </span>
     </>
   );

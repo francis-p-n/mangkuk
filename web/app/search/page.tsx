@@ -3,6 +3,7 @@ import { currentRun, search, one, NotConfigured, PAGE } from "@/lib/supabase";
 import ShipmentRow, { issue } from "@/components/ShipmentRow";
 import Detail from "@/components/Detail";
 import Setup from "@/components/Setup";
+import { groupIntoShipments, shipmentKey } from "@/lib/shipments";
 import StatusIcon from "@/components/StatusIcon";
 import { LayoutList, Search as SearchIcon } from "lucide-react";
 import TopBar from "@/components/TopBar";
@@ -69,6 +70,12 @@ export default async function Search({
     throw e;
   }
 
+  // Every shipment is a file, whatever state it is in. A clean draft is not
+  // an absence of work - it is a container with paperwork that agrees, and a
+  // clerk asked for "the Karachi box" wants it whether or not it once needed
+  // chasing. The list is folders, and a folder with nothing wrong is still a
+  // folder.
+  const shipments = groupIntoShipments(rows);
   const labels = run.labels;
   const keep = (extra: Record<string, string>) => {
     const p = new URLSearchParams();
@@ -96,9 +103,13 @@ export default async function Search({
           <p className="date">
             {rows.length === PAGE
               ? `The first ${PAGE}. Narrow the search to see the rest.`
-              : rows.length === run.totals.emails
-                ? `All ${rows.length} checked.`
-                : `${rows.length} of ${run.totals.emails} match.`}
+              : `${shipments.length} shipment${
+                  shipments.length === 1 ? "" : "s"
+                }${
+                  shipments.length === rows.length
+                    ? ""
+                    : ` from ${rows.length} emails`
+                }`}
           </p>
         </div>
       </header>
@@ -164,23 +175,30 @@ export default async function Search({
             {q ? ` matching “${q}”` : ""}
           </h2>
           <ul>
-            {rows.length === 0 ? (
+            {shipments.length === 0 ? (
               <li className="allclear">
                 {q
                   ? `Nothing matches “${q}”. Try a customer name, an OC number, a port or a vessel.`
                   : "Nothing in this filter. Choose Everything to see the whole run."}
               </li>
             ) : (
-              rows.map((s) => (
-                <li key={s.email_id}>
-                  <ShipmentRow
-                    s={s}
-                    labels={labels}
-                    href={keep({ id: s.email_id })}
-                    current={selected?.email_id === s.email_id}
-                  />
-                </li>
-              ))
+              shipments.map((sp) => {
+                // The newest email carries the name and route to show; the
+                // folder carries the state.
+                const head = sp.emails[sp.emails.length - 1];
+                return (
+                  <li key={sp.key}>
+                    <ShipmentRow
+                      s={head}
+                      labels={labels}
+                      href={`/shipment/${encodeURIComponent(sp.key)}`}
+                      current={selected?.email_id === head.email_id}
+                      count={sp.emails.length}
+                      resolved={sp.resolved}
+                    />
+                  </li>
+                );
+              })
             )}
           </ul>
         </section>
