@@ -205,7 +205,7 @@ dependencies.
 | `python eval/learned_cases.py` | Re-check every correction the desk has made |
 | `python tools/demo_data.py` | Scramble the data for public sharing |
 | `./deploy.sh <bucket>` | Publish to S3 |
-| push to a Vercel-connected repo | Build and publish the site to Vercel |
+| `vercel deploy --prod out/site` | Publish the built folder to Vercel |
 
 Agent providers: `bedrock` (keeps document text inside the tenant),
 `anthropic`, `gemini`. Default is `off`, so the scored run stays
@@ -219,9 +219,18 @@ need opposite fixes.
 
 ### Publishing
 
-Two routes, and they publish different data. Pick deliberately.
+Deploy the built folder, never the repo. `out/` is gitignored, so a
+git-connected project sees no site at all - and because `requirements.txt` sits
+at the root, Vercel routes the repo to its Python runtime, finds none of the
+entrypoints it looks for (`app.py`, `index.py`, `server.py`, `main.py`,
+`wsgi.py`, `asgi.py`), and offers to deploy the `Handler` class out of
+`tools/fake_server.py` or a test. That detection happens before any
+`buildCommand` is read, so no root `vercel.json` can talk it out of it.
 
-**The scrambled demo, by hand.** Nothing identifying leaves the machine:
+`ui/build.py` writes a `vercel.json` beside the pages saying there is nothing
+to build, which is what makes deploying the folder work.
+
+**The scrambled demo.** Nothing identifying leaves the machine:
 
 ```bash
 python run.py && python tools/demo_data.py
@@ -229,23 +238,15 @@ python ui/build.py --results out/results-demo.json --out out/site-demo
 vercel deploy --prod out/site-demo
 ```
 
-Deploying the folder rather than the repo is what makes this work: `out/` is
-gitignored, so a git-connected project sees no site at all, and scanning the
-repo makes Vercel read `tools/fake_server.py` as a Python entrypoint. The
-build writes a `vercel.json` beside the pages saying there is nothing to
-build.
+**The real bundle.** Every consignee name, street address, booking reference
+and OC number, inlined into `data.js` and served world-readable at `/data.js` -
+ahead of the sign-in page, which is a prototype that accepts any credentials
+anyway. `./deploy.sh` asks before doing this; `vercel deploy` does not:
 
-**The real bundle, on every push.** The `vercel.json` at the repo root runs
-the pipeline in Vercel's build and publishes `out/site`, so a git-connected
-project deploys without the manual steps above. It publishes the real data:
-every consignee name, street address, booking reference and OC number, inlined
-into `data.js` and served world-readable at `/data.js` — ahead of the sign-in
-page, which is a prototype that accepts any credentials anyway. `./deploy.sh`
-asks before doing this; a Vercel push does not.
-
-To make the repo route publish the scrambled build instead, point its
-`buildCommand` at `tools/demo_data.py` and its `outputDirectory` at
-`out/site-demo`.
+```bash
+python run.py && python ui/build.py
+vercel deploy --prod out/site
+```
 
 ---
 
