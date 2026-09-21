@@ -3,7 +3,7 @@
 [![Hackathon](https://img.shields.io/badge/Hackathon-Averis%202026-blue)](#)
 [![Team](https://img.shields.io/badge/Team-mangkuk-orange)](#)
 [![Stack](https://img.shields.io/badge/Stack-Python%20%7C%20Next.js%20%7C%20Supabase-green)](#)
-[![Tests](https://img.shields.io/badge/Tests-404%20passing-brightgreen)](docs/validation.md)
+[![Tests](https://img.shields.io/badge/Tests-409%20passing-brightgreen)](docs/validation.md)
 
 > **Team mangkuk — team submission** 🏅
 
@@ -110,7 +110,7 @@ throttled run still produces an identical valid submission.
 | **Spreadsheets** | openpyxl | Reading `.xlsx` shipping instructions |
 | **Word Documents** | python-docx | Reading `.docx` bills of lading |
 | **PDFs** | pypdf | Text extraction from `.pdf` attachments |
-| **Testing** | pytest | 404 tests covering every rule, escalation, box type, filing rule and guardrail |
+| **Testing** | pytest | 409 tests covering every rule, escalation, box type, filing rule and guardrail |
 | **Frontend Framework** | Next.js 15 + React 19 | Server-rendered dashboard |
 | **Language** | TypeScript | Type safety across the web app |
 | **Database** | Supabase (PostgreSQL) | One row per email, JSONB for nested detail |
@@ -164,7 +164,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 ### Checking the claims
 ```bash
-python -m pytest tests -q          # 404 tests
+python -m pytest tests -q          # 409 tests
 python eval/rubric.py              # every claim in docs/validation.md, verified
 ```
 

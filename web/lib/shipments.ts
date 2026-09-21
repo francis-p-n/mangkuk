@@ -32,20 +32,31 @@ import type { Result } from "./format";
 export function referenceOf(r: {
   oc_number: string | null;
   booking_ref: string | null;
+  shipment?: { bl_number?: string | null } | null;
 }): string | null {
-  return r.oc_number?.trim() || r.booking_ref?.trim() || null;
+  return referencesOf(r)[0] ?? null;
 }
 
 /**
  * The references an email carries. Each one is an edge.
+ *
+ * Three names for one shipment, the way a note can have aliases: the OC number
+ * the desk files under, the booking the carrier quotes, and the B/L number
+ * printed on the draft itself. A carrier replying about a document usually
+ * quotes the B/L and nothing else, so leaving it out cuts the commonest real
+ * thread-join there is - even though only ten emails here carry one and none
+ * of them repeats.
  */
 export function referencesOf(r: {
   oc_number: string | null;
   booking_ref: string | null;
+  shipment?: { bl_number?: string | null } | null;
 }): string[] {
-  return [r.oc_number?.trim(), r.booking_ref?.trim()].filter(
-    (v): v is string => Boolean(v)
-  );
+  return [
+    r.oc_number?.trim(),
+    r.booking_ref?.trim(),
+    r.shipment?.bl_number?.trim(),
+  ].filter((v): v is string => Boolean(v));
 }
 
 /**
@@ -104,7 +115,12 @@ class Components {
 
 /** Build the graph, and return which component each email lands in. */
 export function componentsOf(
-  rows: { email_id: string; oc_number: string | null; booking_ref: string | null }[]
+  rows: {
+    email_id: string;
+    oc_number: string | null;
+    booking_ref: string | null;
+    shipment?: { bl_number?: string | null } | null;
+  }[]
 ): Map<string, string> {
   const g = new Components();
   for (const r of rows) {
@@ -125,6 +141,7 @@ export function shipmentKey(r: {
   email_id: string;
   oc_number: string | null;
   booking_ref: string | null;
+  shipment?: { bl_number?: string | null } | null;
 }): string {
   return referencesOf(r)[0] ?? r.email_id;
 }
@@ -219,7 +236,7 @@ export async function folderFor(
 ): Promise<FolderRow[]> {
   const { data: edges, error: e1 } = await db()
     .from("results")
-    .select("email_id, oc_number, booking_ref")
+    .select("email_id, oc_number, booking_ref, shipment")
     .eq("run_id", runId)
     .limit(20000);
   if (e1) throw new Error(`reading the reference graph: ${e1.message}`);

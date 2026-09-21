@@ -23,6 +23,8 @@ export type Shipment = {
   commodity?: string | null;
   booking?: string | null;
   oc_number?: string | null;
+  /** Printed on the draft, and a third name for the same shipment. */
+  bl_number?: string | null;
 };
 
 export type Comparison = {

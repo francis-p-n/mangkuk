@@ -9,8 +9,29 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-OC_RE = re.compile(r"\b(5[A-Z]{3}-\d{5})\b")
-BOOKING_RE = re.compile(r"\b((?:MSDU|MEDU|SIN|SIJ|PSGSE|OOLU|YMJAI|MCLSIN|SINF)[A-Z]*\d{6,})\b")
+# Every OC in the supplied bundle begins with a 5, and this used to require
+# one. That is a fact about this corpus, not about the reference: another
+# exporter's series would not match and the email would file itself under
+# nothing. Any leading character is accepted now, which finds exactly the same
+# 381 references here and does not fall over on the next bundle.
+OC_RE = re.compile(r"\b([0-9A-Z][A-Z]{3}-\d{5})\b")
+
+# Booking references are carrier-prefixed, so this is a list of carriers. It is
+# a coverage limit rather than a wrong answer: an unknown carrier's booking is
+# missed, and a missed reference leaves an email filed on its own instead of
+# filed wrongly.
+#
+# Deliberately not a generic "letters then digits" pattern. A container number
+# is four letters, a U and seven digits - indistinguishable by shape from a
+# booking - and filing a shipment under a container number would merge
+# unrelated mail. This corpus happens to contain none, which is luck rather
+# than a reason.
+#
+# EGLV is Evergreen, written EVER(EGLV...) here. It was absent from the list,
+# so 25 emails carrying a perfectly good booking reference filed under nothing.
+BOOKING_RE = re.compile(
+    r"\b((?:MSDU|MEDU|EGLV|SIN|SIJ|PSGSE|OOLU|YMJAI|MCLSIN|SINF)[A-Z]*\d{6,})\b"
+)
 INVOICE_RE = re.compile(r"\b(52\d{8})\b")
 
 

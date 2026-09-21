@@ -85,7 +85,21 @@ def _shipment_facts(si: Document | None, bl: Document | None) -> dict:
             # The party's address sits on the continuation line under its name.
             consignee = fs.get("consignee")
             address = consignee.detail if consignee else ""
-            return facts | extract_context(doc.text) | {
+            # Context from the other document too, and only where this one is
+            # silent. The B/L number is the case that matters: it is printed on
+            # the bill of lading and never on the instruction, so preferring
+            # the SI and stopping meant the one reference a carrier quotes when
+            # replying about a document was thrown away.
+            other = bl if doc is si else si
+            spare = (
+                extract_context(other.text)
+                if other is not None and other.ok
+                else {}
+            )
+            context = {k: v for k, v in spare.items() if v}
+            context.update({k: v for k, v in extract_context(doc.text).items() if v})
+
+            return facts | context | {
                 "source": doc.role,
                 "mode": "sea",
                 "consignee_address": address or None,
