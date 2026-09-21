@@ -1,10 +1,8 @@
 .tools/
-# Everything the pipeline writes stays out of the repo, except the scrambled
-# site: Vercel serves it from here with Root Directory set to out/site-demo,
-# which is what keeps requirements.txt out of scope and stops Vercel reading
-# the project as a Python app. out/site - the real bundle - stays ignored.
-out/*
-!out/site-demo/
+# Everything the pipeline writes. Vercel builds the site from web/ now, so
+# nothing under here needs to be committed - and a build artefact in git goes
+# stale the moment the app moves on without it.
+out/
 __pycache__/
 *.pyc
 .pytest_cache/

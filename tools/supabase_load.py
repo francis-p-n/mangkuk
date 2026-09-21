@@ -10,9 +10,9 @@ service key bypasses row-level security, which is the point: the pipeline is
 the only writer, and the anon key the site ships with can only read.
 
 Defaults to `out/results-demo.json` and refuses the real bundle without
-`--real`, for the same reason deploy.sh does - a Supabase table behind an
-anon key is as public as an S3 bucket, and the real run carries consignee
-names, addresses and OC numbers.
+`--real`. The table is readable by the anon key the site ships in its own
+JavaScript, so loading the real run publishes every consignee name, address
+and OC number in it to anyone who opens the site.
 
 PostgREST over urllib rather than the supabase client: the whole exchange is
 two POSTs, and the project already talks HTTP this way in agents/clients.py.
@@ -175,11 +175,10 @@ def main() -> int:
             print(f"  {p}")
         return 65
 
-    # Counted the way ui/build.py counts, over comparison requests rather than
-    # over rows that ended up with a comparison table. The two differ by the
-    # requests whose attachment never arrived, and a headline that disagrees
-    # with the existing site would be read as the new stack losing fifteen
-    # shipments.
+    # Counted over comparison requests, not over rows that ended up with a
+    # comparison table. The two differ by the requests whose attachment never
+    # arrived - fifteen of them - and counting the narrower set would quietly
+    # drop those from every headline the site shows.
     comparisons = [r for r in rows if r["category"] == "BL_COMPARISON"]
     totals = {
         "emails": len(rows),

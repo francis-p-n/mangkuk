@@ -60,12 +60,14 @@ The loader defaults to the scrambled build and refuses the real one without
 
 ## Deploying
 
-Vercel's **Root Directory** setting picks what deploys.
+Set Vercel's **Root Directory** to `web`. That is the whole configuration.
 
-| Root Directory | What deploys |
-|---|---|
-| `web` | the Next.js app, reading the run out of Supabase |
-| `out/site-demo` | the static build, with the data inlined |
+Leaving it at the repository root is the one setting that cannot work: there
+is no application there, only the pipeline that feeds one, and Vercel reads
+the Python it finds and goes looking for a web server to run. With the root
+set to `web` it sees a Next.js project and the question never arises.
 
-Leave it at the repository root and nothing sensible happens - there is no
-application there, only the pipeline that feeds one.
+The build needs no environment - both pages render per request, so it goes
+green and then says what is missing. Add `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `..._PUBLISHABLE_KEY`, whichever your
+project issues), redeploy, and load a run.
