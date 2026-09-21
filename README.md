@@ -205,6 +205,8 @@ dependencies.
 | `python eval/learned_cases.py` | Re-check every correction the desk has made |
 | `python tools/demo_data.py` | Scramble the data for public sharing |
 | `./deploy.sh <bucket>` | Publish to S3 |
+| `python tools/supabase_load.py` | Load the run into Supabase |
+| `npm run dev --prefix web` | The Next.js app against Supabase |
 | `vercel deploy --prod out/site` | Publish the built folder to Vercel |
 
 Agent providers: `bedrock` (keeps document text inside the tenant),
@@ -219,24 +221,38 @@ need opposite fixes.
 
 ### Publishing
 
-Deploy the built folder, never the repo. `out/` is gitignored, so a
-git-connected project sees no site at all - and because `requirements.txt` sits
-at the root, Vercel routes the repo to its Python runtime, finds none of the
-entrypoints it looks for (`app.py`, `index.py`, `server.py`, `main.py`,
-`wsgi.py`, `asgi.py`), and offers to deploy the `Handler` class out of
-`tools/fake_server.py` or a test. That detection happens before any
-`buildCommand` is read, so no root `vercel.json` can talk it out of it.
+Two deployable things live in this repo, and Vercel's **Root Directory**
+setting is what picks between them. Nothing else about the project changes.
 
-`ui/build.py` writes a `vercel.json` beside the pages saying there is nothing
-to build, which is what makes deploying the folder work.
+| Root Directory | What deploys | Needs |
+|---|---|---|
+| `web` | the Next.js app, reading the run out of Supabase | the two `NEXT_PUBLIC_*` vars, and a run loaded |
+| `out/site-demo` | the static build, data inlined at build time | nothing |
 
-**Deploy on push.** `out/site-demo` is committed, and the Vercel project sets
-**Root Directory** to `out/site-demo`. That is what makes the git integration
-work: the root `requirements.txt` falls outside the scope, so Vercel never
-reads the project as a Python app, and `out/site-demo/vercel.json` tells it
-there is nothing to build. Rebuild and commit the folder to publish a change.
+Leaving it at the repository root is the one setting that cannot work:
+`requirements.txt` is there, so Vercel routes the project to its Python
+runtime, looks for `app.py`, `index.py`, `server.py`, `main.py`, `wsgi.py` or
+`asgi.py`, finds none, and offers to deploy the `Handler` class out of
+`tools/fake_server.py` or a test. That happens before any `buildCommand` is
+read, so no root `vercel.json` can prevent it. Point Root Directory at a
+subdirectory and the question never arises.
 
-**The scrambled demo, by hand.** Nothing identifying leaves the machine:
+**The Next.js app.** Set Root Directory to `web`. The build needs no
+environment at all - both pages are rendered per request, so it goes green and
+then says what is missing. Add `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` in the project's environment variables, then
+load a run:
+
+```bash
+python run.py && python tools/demo_data.py
+python tools/supabase_load.py
+```
+
+The loader defaults to the scrambled build and refuses the real one without
+`--real`, because the anon key the site ships with can read the whole table.
+
+**The static build.** Set Root Directory to `out/site-demo`, which is
+committed. Or deploy the folder by hand, which skips the repo entirely:
 
 ```bash
 python run.py && python tools/demo_data.py
@@ -244,19 +260,8 @@ python ui/build.py --results out/results-demo.json --out out/site-demo
 vercel deploy --prod out/site-demo
 ```
 
-**The real bundle.** Every consignee name, street address, booking reference
-and OC number, inlined into `data.js` and served world-readable at `/data.js`,
-ahead of the sign-in page, which is a prototype that accepts any credentials
-anyway. `./deploy.sh` asks before doing this; `vercel deploy` does not.
-
-`out/site` stays gitignored, so this route is never the one that deploys on
-push: a public repo keeps whatever it is given, and a deployment can at least
-be deleted afterwards.
-
-```bash
-python run.py && python ui/build.py
-vercel deploy --prod out/site
-```
+`out/site` - the real bundle, with every consignee name, address and OC
+number - stays gitignored, so it is never what deploys on a push.
 
 ---
 

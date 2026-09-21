@@ -81,16 +81,13 @@ function worstFirst(rows: Result[]): Result[] {
 
 export async function byStatus(
   runId: string,
-  status: Result["status"],
-  limit?: number
+  status: Result["status"]
 ): Promise<Result[]> {
-  let q = db()
+  const { data, error } = await db()
     .from("results")
     .select(COLUMNS)
     .eq("run_id", runId)
     .eq("status", status);
-  if (limit) q = q.limit(limit);
-  const { data, error } = await q;
   if (error) throw new Error(`reading ${status}: ${error.message}`);
   return worstFirst((data ?? []) as unknown as Result[]);
 }

@@ -77,7 +77,7 @@ const KEEP_CAPS = new Set([
 ]);
 const FIXES: Record<string, string> = { Gmbh: "GmbH" };
 
-export function title(s: string | null | undefined): string {
+function title(s: string | null | undefined): string {
   if (!s) return "";
   return String(s)
     .toLowerCase()
@@ -95,7 +95,7 @@ export function title(s: string | null | undefined): string {
 }
 
 // City only: drop the UN/LOCODE, keep a terminal name like (Westport).
-export const cityOf = (p: string | null | undefined): string =>
+const cityOf = (p: string | null | undefined): string =>
   title(
     String(p || "")
       .replace(/\s*\([A-Z]{5}\)/g, "")
@@ -104,7 +104,7 @@ export const cityOf = (p: string | null | undefined): string =>
   );
 
 // Cut on a word boundary; a heading ending "PAPERONE DIGITA" looks broken.
-export function clip(text: string | null | undefined, max: number): string {
+function clip(text: string | null | undefined, max: number): string {
   const s = String(text || "")
     .replace(/\s*_\s*/g, " · ")
     .replace(/\s+/g, " ")
@@ -124,14 +124,14 @@ const BOX: Record<string, string> = {
 };
 
 // "6 x 40'HC" is a code. "6 forty-foot high-cube containers" is the job.
-export function boxes(spec: string | null | undefined): string {
+function boxes(spec: string | null | undefined): string {
   const m = /(\d+)\s*[xX]\s*(\d+)\s*'?\s*([A-Za-z]+)?/.exec(spec || "");
   if (!m) return spec || "";
   const kind = BOX[(m[3] || "").toUpperCase()] || "ft";
   return `${m[1]} × ${m[2]}${kind} container${m[1] === "1" ? "" : "s"}`;
 }
 
-export const weight = (w: string | null | undefined): string =>
+const weight = (w: string | null | undefined): string =>
   String(w || "").replace(/\s*KGS?\b/i, " kg").trim();
 
 // Named by the customer when known, by the email when not.
