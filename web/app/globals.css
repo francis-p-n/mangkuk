@@ -748,3 +748,7 @@ tr.bad th[scope="row"] {
    two rows tall - without this the shipment's own name lands underneath it. */
 #open-shipment { scroll-margin-top: 104px; }
 @media (min-width: 641px) { #open-shipment { scroll-margin-top: 72px; } }
+
+/* A row scrolled to from a ?id= link must not land under the sticky bar. */
+.row { scroll-margin-top: 72px; scroll-margin-bottom: 24px; }
+@media (max-width: 640px) { .row { scroll-margin-top: 104px; } }

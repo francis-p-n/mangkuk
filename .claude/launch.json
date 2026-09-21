@@ -11,18 +11,6 @@
         "web"
       ],
       "port": 3000
-    },
-    {
-      "name": "web-review",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "web/node_modules/next/dist/bin/next",
-        "dev",
-        "web",
-        "-p",
-        "3100"
-      ],
-      "port": 3100
     }
   ]
 }

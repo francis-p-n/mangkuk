@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
 import type { ListRow, Labels } from "@/lib/supabase";
 import type { Result } from "@/lib/format";
@@ -91,13 +92,32 @@ export default function ShipmentList({
     open
   );
 
+  // A link with ?id= in it arrives with a shipment open and its row three
+  // screens down the list, which reads as the wrong one being shown. Only on
+  // arrival: moving with the arrow keys focuses the row, and focusing already
+  // scrolls it.
+  const list = useRef<HTMLUListElement>(null);
+  const landed = useRef(false);
+  useEffect(() => {
+    if (landed.current || !openId) return;
+    landed.current = true;
+    // After a frame, and centred. Fonts and the logo settle after first
+    // paint, and a row brought minimally into view before that lands back
+    // under the fold.
+    requestAnimationFrame(() => {
+      list.current
+        ?.querySelector(`[data-id="${CSS.escape(openId)}"]`)
+        ?.scrollIntoView({ block: "center" });
+    });
+  }, [openId]);
+
   return (
     <main className="cols" id="results">
       <section className="card" aria-labelledby="list-heading">
         <h2 className="listtop" id="list-heading">
           {heading}
         </h2>
-        <ul onKeyDown={onKeyDown}>
+        <ul ref={list} onKeyDown={onKeyDown}>
           {entries.length === 0 ? (
             <li className="allclear">{empty}</li>
           ) : (
