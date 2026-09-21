@@ -18,12 +18,24 @@ function env(name: string): string | undefined {
   return v ? v : undefined;
 }
 
+// Supabase renamed the browser-side key: projects created before the change
+// hand you an "anon key", newer ones a "publishable key". They go in the same
+// place and do the same job, and a project is issued only one of the two - so
+// both names are accepted rather than making the reader discover which
+// vocabulary their dashboard uses.
+const URL_NAMES = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"];
+const KEY_NAMES = [
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+];
+
 /** Unprefixed first: those are never inlined, so they always mean runtime. */
 function settings() {
-  return {
-    url: env("SUPABASE_URL") ?? env("NEXT_PUBLIC_SUPABASE_URL"),
-    anon: env("SUPABASE_ANON_KEY") ?? env("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  };
+  const first = (names: string[]) =>
+    names.map(env).find((v) => v !== undefined);
+  return { url: first(URL_NAMES), anon: first(KEY_NAMES) };
 }
 
 export class NotConfigured extends Error {
@@ -40,8 +52,8 @@ export class NotConfigured extends Error {
 export function db() {
   const { url, anon } = settings();
   const missing = [
-    ...(url ? [] : ["NEXT_PUBLIC_SUPABASE_URL"]),
-    ...(anon ? [] : ["NEXT_PUBLIC_SUPABASE_ANON_KEY"]),
+    ...(url ? [] : [URL_NAMES.join(" or ")]),
+    ...(anon ? [] : ["NEXT_PUBLIC_SUPABASE_ANON_KEY (or …PUBLISHABLE_KEY)"]),
   ];
   if (!url || !anon) throw new NotConfigured(missing);
   return createClient(url, anon, { auth: { persistSession: false } });

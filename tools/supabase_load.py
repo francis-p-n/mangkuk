@@ -48,10 +48,17 @@ def load_env() -> tuple[str, str]:
     except ImportError:
         pass
     url = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
-    key = os.environ.get("SUPABASE_SERVICE_KEY") or ""
+    # Supabase renamed the write key: older projects issue a "service role
+    # key", newer ones a "secret key". A project has one or the other, so both
+    # names are read rather than making the operator translate.
+    key = next((os.environ[n] for n in
+                ("SUPABASE_SERVICE_KEY", "SUPABASE_SECRET_KEY",
+                 "SUPABASE_SERVICE_ROLE_KEY")
+                if os.environ.get(n)), "")
     if not url or not key:
         raise LoadError(
-            "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set - see .env.example"
+            "SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_SECRET_KEY) "
+            "must be set - see .env.example"
         )
     return url, key
 
