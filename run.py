@@ -150,6 +150,7 @@ def main() -> int:
         print(f"  {agent_stats.fields_accepted:4}  accepted (grounded in the document)")
         print(f"  {agent_stats.rejected_ungrounded:4}  rejected - quote not in the document")
         print(f"  {agent_stats.rejected_implausible:4}  rejected - implausible for the field")
+        print(f"  {agent_stats.rejected_placeholder:4}  rejected - an unfilled blank, not a value")
         print(f"  {agent_stats.triage_calls:4}  classifications requested"
               f" / {agent_stats.triage_accepted} accepted")
 

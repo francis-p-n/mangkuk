@@ -109,6 +109,30 @@ class TestGrounding:
         assert resolver.resolve(doc, fields, "si") == 0
         assert stats.rejected_implausible == 1
 
+    def test_an_unfilled_blank_is_rejected_though_it_is_grounded(self):
+        """The blank really is printed there, so grounding alone accepts it.
+
+        Found on a live run against email_517, where the agent resolved
+        `Port of Loading (POL): ____MT` to "____MT" and the comparison then
+        reported the carrier's SINGAPORE as a serious discrepancy against it.
+        The reading pass already refuses these; the agent must too.
+        """
+        doc = ("SHIPPING INSTRUCTION\n\n"
+               "Port of Loading (POL): ____MT\n"
+               "Port of Discharge (POD): TBA\n")
+        stats = AgentStats()
+        resolver = FieldResolver(FakeClient(json.dumps({
+            "port_of_loading": {"value": "____MT",
+                                "quote": "Port of Loading (POL): ____MT"},
+            "port_of_discharge": {"value": "TBA",
+                                  "quote": "Port of Discharge (POD): TBA"},
+        })), stats)
+        fields = extract_fields(doc)
+        assert resolver.resolve(doc, fields, "si") == 0
+        assert stats.rejected_placeholder == 2
+        assert stats.rejected_ungrounded == 0    # they were grounded
+        assert "port_of_loading" not in fields.values
+
 
 class TestRefusalToOverreach:
     def test_it_never_overwrites_a_field_the_parser_already_found(self):

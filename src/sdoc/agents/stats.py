@@ -20,6 +20,7 @@ class AgentStats:
     fields_accepted: int = 0
     rejected_ungrounded: int = 0
     rejected_implausible: int = 0
+    rejected_placeholder: int = 0
     triage_calls: int = 0
     triage_accepted: int = 0
     # Asked, never answered. Not an abstention.

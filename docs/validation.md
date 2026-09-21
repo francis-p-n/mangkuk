@@ -7,10 +7,10 @@ Every number here is reproducible from the commands in the README.
 
 There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 346 tests, all passing
+### 1. Test suite — 347 tests, all passing
 
 ```
-346 passed in 17.78s
+347 passed in 17.67s
 ```
 
 Unit tests cover every normalization rule, every label alias including the

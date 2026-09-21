@@ -157,7 +157,7 @@ against a hidden set the local copy describes the wrong emails.
 | Score against ground truth | `eval/score.py` | `test_score.py` — the scorer is itself tested |
 | Submit over HTTP | `mailsource.py` | `test_http_source.py` — against a real socket |
 
-346 tests, 602/602 injected defects caught, 31/31 clerk's-eye cases.
+347 tests, 602/602 injected defects caught, 31/31 clerk's-eye cases.
 
 ## What the brief does not say
 

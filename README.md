@@ -63,7 +63,7 @@ the document — never invent one. That restriction is enforced and tested.
 
 No ground truth ships with the bundle, so accuracy is established six ways.
 
-**1 — Test suite: 346 passing.** Every normalization rule, every label alias,
+**1 — Test suite: 347 passing.** Every normalization rule, every label alias,
 document identification across `.txt`/`.xlsx`/`.docx`/`.pdf`, all four
 escalation reasons and their precedence, the classifier, and submission
 validation. 18 cases are pinned after hand-reading both source documents: 7
@@ -130,7 +130,7 @@ to the default — RPA billing notices, berthing reports, a time-off request.
 Those are the genuine judgement calls, and exactly the residue an LLM stage
 should own. Rules decide the remaining 88.7% at high confidence.
 
-**6 — The agent's guardrails are tested; the live call is not.** 61 tests drive
+**6 — The agent's guardrails are tested; the live call is not.** 62 tests drive
 the resolver, the provider wiring and the retry layer — through a fake client
 and, for the HTTP provider, a real local server. A grounded value is accepted,
 an invented company rejected, a genuine quote carrying a smuggled value
@@ -189,7 +189,7 @@ dependencies.
 
 | Command | What it does |
 |---|---|
-| `python -m pytest tests -q` | 346 tests |
+| `python -m pytest tests -q` | 347 tests |
 | `python eval/mutation.py` | Inject defects, measure detection |
 | `python eval/desk_cases.py` | 31 real-world document quirks |
 | `python eval/audit.py` | Audit a run with no ground truth |
@@ -302,7 +302,7 @@ src/sdoc/
   places.py       one settled spelling per port
   labels.py       the shared vocabulary
   pipeline.py     orchestration
-tests/          346 tests
+tests/          347 tests
 eval/           mutation, desk cases, audit, scorer
 ui/             the site: pages, shared lib/, and its build
 tools/          data scrambler for public demos

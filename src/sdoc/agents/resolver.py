@@ -8,7 +8,7 @@ so the email escalates exactly as if the agent had never run.
 """
 from __future__ import annotations
 
-from ..fields import FIELDS, Extracted, FieldSet, plausible
+from ..fields import FIELDS, Extracted, FieldSet, is_placeholder, plausible
 from .clients import NullClient, RateLimited
 from .prompts import RESOLVER_SYSTEM
 from .replies import _parse_json_object, _squash
@@ -74,6 +74,16 @@ class FieldResolver:
             # something the document does not say.
             if _squash(quote) not in haystack or _squash(value) not in _squash(quote):
                 self.stats.rejected_ungrounded += 1
+                continue
+            # An unfilled blank is grounded - "____MT" and "TBA" really are
+            # printed on the instruction - so grounding alone waves it through
+            # and the comparison then reports the carrier's real port as a
+            # discrepancy against it. That is the false alarm the reading pass
+            # already refuses to raise (fields/placeholders.py), and the agent
+            # must not be the way back in: it would send a clerk to argue with
+            # a carrier about a field their own side never filled in.
+            if is_placeholder(value):
+                self.stats.rejected_placeholder += 1
                 continue
             if not plausible(name, value):
                 self.stats.rejected_implausible += 1
