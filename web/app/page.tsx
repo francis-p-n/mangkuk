@@ -8,6 +8,8 @@ import Setup from "@/components/Setup";
 // run with no redeploy.
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Today — Document checks" };
+
 const SHOWN = 6; // a screenful; the rest is one click away
 
 export default async function Today() {
@@ -93,6 +95,13 @@ export default async function Today() {
         )}
       </p>
 
+      <p className="orient">
+        Every draft bill of lading below was compared against the shipping
+        instruction that ordered it. <b>Needs fixing</b> means a detail
+        disagrees. <b>Needs you to look</b> means it could not be checked, so
+        nothing was guessed.
+      </p>
+
       <form className="jump" action="/search" role="search">
         <label className="sr-only" htmlFor="q">
           Search every shipment
@@ -144,7 +153,11 @@ export default async function Today() {
             <div className="card">
               <ul>
                 {qu.rows.length === 0 ? (
-                  <li className="allclear">Nothing in this pile.</li>
+                  <li className="allclear">
+                    {qu.status === "MISMATCH"
+                      ? "No draft disagrees with its instruction today."
+                      : "Nothing needed a person today."}
+                  </li>
                 ) : (
                   qu.rows.slice(0, SHOWN).map((s) => (
                     <li key={s.email_id}>

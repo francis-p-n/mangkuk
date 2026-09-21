@@ -135,7 +135,17 @@ const weight = (w: string | null | undefined): string =>
   String(w || "").replace(/\s*KGS?\b/i, " kg").trim();
 
 // Named by the customer when known, by the email when not.
-export const who = (s: Result): string =>
+//
+// Typed by what it reads rather than by Result, so a list row carrying none
+// of the heavy JSONB can still be named without being widened back out to a
+// full record just to satisfy a signature.
+export type Named = {
+  email_id: string;
+  subject: string | null;
+  shipment: Shipment;
+};
+
+export const who = (s: Named): string =>
   title(s.shipment?.consignee) || clip(s.subject, 52) || s.email_id;
 
 export function route(sh: Shipment | null | undefined, joiner = " to "): string {

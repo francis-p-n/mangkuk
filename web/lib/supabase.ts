@@ -97,15 +97,43 @@ export async function currentRun(): Promise<Run | null> {
   return (data as Run) ?? null;
 }
 
+// Everything, for the one shipment being read in detail.
 const COLUMNS =
   "email_id, category, rule, status, review_reason, has_defect, defect_fields, " +
   "subject, sender, oc_number, booking_ref, note, severity, severity_field, " +
   "severity_reason, documents, comparisons, shipment";
 
+// What a row in a list actually draws, and nothing else.
+//
+// The full set was being fetched for every row of every list: seven
+// comparisons and two document records per shipment, none of which a list
+// renders. On an unfiltered search that was five hundred rows of it - 1.4MB
+// and four seconds to draw a list of names and ports. The detail panel reads
+// the whole row separately, so nothing on screen loses anything.
+const LIST_COLUMNS =
+  "email_id, status, review_reason, defect_fields, subject, oc_number, " +
+  "booking_ref, severity, shipment";
+
+/** A row as a list needs it. The heavy JSONB is deliberately absent. */
+export type ListRow = Pick<
+  Result,
+  | "email_id"
+  | "status"
+  | "review_reason"
+  | "defect_fields"
+  | "subject"
+  | "oc_number"
+  | "booking_ref"
+  | "severity"
+  | "shipment"
+>;
+
 /** Worst first, the order the queue is meant to be worked in. */
 const BAND_ORDER = ["critical", "serious", "routine"];
 
-function worstFirst(rows: Result[]): Result[] {
+function worstFirst<T extends { severity: string | null; email_id: string }>(
+  rows: T[]
+): T[] {
   return [...rows].sort((a, b) => {
     const ai = a.severity ? BAND_ORDER.indexOf(a.severity) : 99;
     const bi = b.severity ? BAND_ORDER.indexOf(b.severity) : 99;
@@ -117,14 +145,14 @@ function worstFirst(rows: Result[]): Result[] {
 export async function byStatus(
   runId: string,
   status: Result["status"]
-): Promise<Result[]> {
+): Promise<ListRow[]> {
   const { data, error } = await db()
     .from("results")
-    .select(COLUMNS)
+    .select(LIST_COLUMNS)
     .eq("run_id", runId)
     .eq("status", status);
   if (error) throw new Error(`reading ${status}: ${error.message}`);
-  return worstFirst((data ?? []) as unknown as Result[]);
+  return worstFirst((data ?? []) as unknown as ListRow[]);
 }
 
 export async function one(
@@ -149,8 +177,8 @@ export async function one(
 export async function search(
   runId: string,
   { q, status }: { q?: string; status?: string }
-): Promise<Result[]> {
-  let query = db().from("results").select(COLUMNS).eq("run_id", runId);
+): Promise<ListRow[]> {
+  let query = db().from("results").select(LIST_COLUMNS).eq("run_id", runId);
 
   if (status && status !== "ALL") query = query.eq("status", status);
 
@@ -176,14 +204,21 @@ export async function search(
 
   const { data, error } = await query.limit(PAGE);
   if (error) throw new Error(`searching: ${error.message}`);
-  return worstFirst((data ?? []) as unknown as Result[]);
+  return worstFirst((data ?? []) as unknown as ListRow[]);
 }
 
 /**
  * How many rows one search returns.
  *
  * A cap, not a count. The caller has to say so when it is hit, because
- * "500 of 520 match" reads as a filter that excluded twenty shipments when
- * it actually means twenty were never fetched.
+ * "100 of 520 match" reads as a filter that excluded four hundred shipments
+ * when it actually means four hundred were never fetched.
+ *
+ * A hundred rather than five hundred because the cost here is the markup, not
+ * the query: every row is about 2.5KB of HTML and the same again in the
+ * payload that hydrates it, so five hundred of them was 1.3MB and two seconds
+ * before anything appeared. The queues a clerk actually opens - 46 needing a
+ * fix, 20 needing a look - are well inside this, so only the unfiltered
+ * "Everything" view truncates, and it says so.
  */
-export const PAGE = 500;
+export const PAGE = 100;

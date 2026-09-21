@@ -6,12 +6,14 @@ import Setup from "@/components/Setup";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Every shipment — Document checks" };
+
 const FILTERS = [
-  { value: "ALL", label: "Everything" },
-  { value: "MISMATCH", label: "Needs fixing" },
-  { value: "NEEDS_REVIEW", label: "Needs you to look" },
-  { value: "OK", label: "Fine" },
-];
+  { value: "ALL", label: "Everything", tone: "f-all" },
+  { value: "MISMATCH", label: "Needs fixing", tone: "f-mismatch" },
+  { value: "NEEDS_REVIEW", label: "Needs you to look", tone: "f-review" },
+  { value: "OK", label: "Fine", tone: "f-ok" },
+] as const;
 
 export default async function Search({
   searchParams,
@@ -79,6 +81,10 @@ export default async function Search({
 
   return (
     <div className="wrap">
+      <a className="skip" href="#results">
+        Skip to the results
+      </a>
+
       <header className="titlerow">
         <div>
           <h1>Every shipment</h1>
@@ -112,28 +118,50 @@ export default async function Search({
         </button>
       </form>
 
-      <nav className="bandbar" aria-label="Filter by what needs doing">
-        {FILTERS.map((f) => (
-          <Link
-            key={f.value}
-            href={keep({ status: f.value === "ALL" ? "" : f.value, id: "" })}
-            aria-current={status === f.value ? "true" : undefined}
-            style={{ fontWeight: status === f.value ? 600 : 400 }}
-          >
-            {f.label}
-          </Link>
-        ))}
+      <nav className="filters" aria-label="Filter by what needs doing">
+        {FILTERS.map((f) => {
+          // The run's own totals, so the control says how much is behind each
+          // option before it is clicked. "Fine" counts comparison requests,
+          // not every email, which is what the rest of the site means by it.
+          const n =
+            f.value === "MISMATCH" ? run.totals.mismatch
+            : f.value === "NEEDS_REVIEW" ? run.totals.review
+            : f.value === "OK" ? run.totals.ok
+            : run.totals.comparisons;
+          return (
+            <Link
+              key={f.value}
+              className={f.tone}
+              href={keep({ status: f.value === "ALL" ? "" : f.value, id: "" })}
+              aria-current={status === f.value ? "true" : undefined}
+            >
+              <span className="dot" aria-hidden="true" />
+              {f.label}
+              <span className="n">{n}</span>
+            </Link>
+          );
+        })}
       </nav>
+
+      <p className="sr-only" role="status" aria-live="polite">
+        {rows.length} shipment{rows.length === 1 ? "" : "s"} shown.
+      </p>
 
       <main className="cols" id="results">
         <section className="card" aria-labelledby="list-heading">
+          {/* Name what is in the list, not that a filter is on. "Filtered"
+              tells the reader something they already did; the label of the
+              filter tells them what they are looking at. */}
           <h2 className="listtop" id="list-heading">
-            {status === "ALL" ? "Every shipment" : "Filtered"}
+            {FILTERS.find((f) => f.value === status)?.label ?? "Every shipment"}
+            {q ? ` matching “${q}”` : ""}
           </h2>
           <ul>
             {rows.length === 0 ? (
               <li className="allclear">
-                Nothing matches {q ? `“${q}”` : "that filter"}.
+                {q
+                  ? `Nothing matches “${q}”. Try a customer name, an OC number, a port or a vessel.`
+                  : "Nothing in this filter. Choose Everything to see the whole run."}
               </li>
             ) : (
               rows.map((s) => (
@@ -155,7 +183,9 @@ export default async function Search({
             <Detail s={selected} labels={labels} />
           ) : (
             <p className="allclear" style={{ padding: "28px 22px" }}>
-              Choose a shipment to see what was checked.
+              {sp.id
+                ? `There is no shipment ${sp.id} in this run.`
+                : "Choose a shipment on the left to see the seven details that were checked."}
             </p>
           )}
         </section>

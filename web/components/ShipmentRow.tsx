@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Result } from "@/lib/format";
+import type { ListRow } from "@/lib/supabase";
 import type { Labels } from "@/lib/supabase";
 import { who, route } from "@/lib/format";
 
@@ -9,7 +10,7 @@ import { who, route } from "@/lib/format";
  * Ported from ui/lib/views.js. The list-joining matters: "Consignee and
  * loading port do not match" reads; "consignee, loading_port" does not.
  */
-export function issue(s: Result, labels: Labels): string {
+export function issue(s: ListRow | Result, labels: Labels): string {
   const names = labels.field ?? {};
   if (s.status === "MISMATCH") {
     const parts = s.defect_fields.map((f) =>
@@ -34,7 +35,7 @@ export function issue(s: Result, labels: Labels): string {
 }
 
 type Props = {
-  s: Result;
+  s: ListRow | Result;
   labels: Labels;
   href?: string;
   current?: boolean;

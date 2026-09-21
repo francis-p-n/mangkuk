@@ -368,3 +368,108 @@ tr.bad th[scope="row"] {
   text-transform: uppercase; color: var(--ink-faint);
   margin: 0; padding: 14px 18px 10px;
 }
+
+/* The status filter.
+   Was four underlined links with a bolded current one - which reads as
+   navigation away from the page rather than a choice about what is on it.
+   A segmented control says "pick one of these four", and each option carries
+   the colour its queue already uses, so the filter and the rows it produces
+   are visibly the same vocabulary. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 5px;
+  background: var(--sunk);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+}
+.filters a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.filters a:hover { background: var(--card); color: var(--ink); }
+.filters a:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+/* A dot in the queue's own colour, so the option is identifiable before the
+   label is read - and still identifiable to a reader who cannot tell the
+   colours apart, because the label is right there. */
+.filters .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; flex: none;
+}
+.filters .f-mismatch { color: var(--fix); }
+.filters .f-review   { color: var(--look); }
+.filters .f-ok       { color: var(--fine); }
+.filters .f-all      { color: var(--ink-soft); }
+.filters .f-all .dot { display: none; }
+
+.filters a[aria-current="true"] {
+  background: var(--card);
+  border-color: var(--rule-firm);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / .06);
+}
+.filters a[aria-current="true"].f-mismatch { color: var(--fix); background: var(--fix-wash); border-color: var(--fix-rule); }
+.filters a[aria-current="true"].f-review   { color: var(--look); background: var(--look-wash); border-color: var(--look-rule); }
+.filters a[aria-current="true"].f-ok       { color: var(--fine); background: var(--fine-wash); border-color: var(--rule-firm); }
+
+.filters .n {
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  opacity: .75;
+}
+
+/* Skeletons. Shaped like the content they stand in for, so nothing moves
+   when the real thing arrives. The shimmer is disabled for anyone who has
+   asked for reduced motion - a pulsing page is exactly what that setting is
+   there to stop. */
+.sk {
+  background: linear-gradient(90deg, var(--sunk) 25%, var(--rule) 37%, var(--sunk) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+  height: 13px;
+  margin: 0 0 9px;
+}
+.sk-title { height: 26px; width: 9rem; margin-bottom: 12px; border-radius: 7px; }
+.sk-bar { height: 42px; width: 100%; max-width: 30rem; border-radius: 999px; margin: 18px 0 0; }
+.sk-sm { height: 11px; opacity: .7; }
+.sk-row { padding: 15px 18px; border-bottom: 1px solid var(--rule); }
+.sk-row:last-child { border-bottom: 0; }
+
+@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; background: var(--sunk); }
+}
+
+/* The one sentence a first-time reader needs: what the two queues mean.
+   Sits between the headline and the search box, where the eye already is. */
+.orient {
+  margin: 0 0 20px;
+  padding: 13px 16px;
+  background: var(--sunk);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--brand);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  line-height: 1.65;
+  max-width: 62ch;
+}
+.orient b { color: var(--ink); font-weight: 600; }
