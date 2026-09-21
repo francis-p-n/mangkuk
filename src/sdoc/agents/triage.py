@@ -4,8 +4,43 @@ from __future__ import annotations
 from ..classify import CATEGORIES
 from .clients import BudgetExhausted, NullClient, RateLimited
 from .prompts import TRIAGE_SYSTEM
-from .replies import _parse_json_object
+from .replies import _parse_json_object, _squash
 from .stats import AgentStats
+
+
+# What a claimed reason that is not in the email does to the number beside
+# it. Not zero: the category may still be right, and the reply is still an
+# opinion worth having. It simply stops being one worth trusting without a
+# second look, which is exactly what the cascade threshold is for.
+UNGROUNDED_CEILING = 0.4
+
+
+def _confidence(raw) -> float:
+    """A number in [0, 1], however the model chose to express it.
+
+    Anything unreadable becomes 0.5 rather than 0 or 1: a reply that did not
+    answer the question is not evidence of certainty in either direction.
+    """
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        return 0.5
+
+    # NaN compares false against everything, so min() and max() hand it
+    # straight back and a clamp that looks total lets it through as 1.0 -
+    # an unreadable answer arriving as maximum confidence, which would
+    # escalate nothing and be believed completely.
+    if v != v:
+        return 0.5
+
+    # A model asked for 0-1 sometimes answers in percent. Two is the dividing
+    # line: nobody reports 1.7% confidence, so a value just over one is an
+    # over-range probability and means "certain", while 85 means 85%. Reading
+    # 1.7 as a percentage would turn the most confident possible answer into
+    # the least, which is the one direction this must never get wrong.
+    if 2.0 <= v <= 100.0:
+        v = v / 100.0
+    return max(0.0, min(1.0, v))
 
 
 class TriageAgent:
@@ -45,7 +80,26 @@ class TriageAgent:
             self.stats.say(f"failed ({type(exc).__name__})")
             return None
 
-        category = str(_parse_json_object(raw).get("category", "")).strip().upper()
+        reply = _parse_json_object(raw)
+        category = str(reply.get("category", "")).strip().upper()
+
+        # How sure it says it is, and whether the email bears that out.
+        #
+        # Self-reported confidence on its own is worth very little - a model
+        # asked how sure it is will generally say "quite" - so it is paired
+        # with a check the model cannot talk its way past: the phrase it
+        # claims decided the category has to actually appear in the email.
+        # A quotation that is not there is a reason to disbelieve the number
+        # attached to it, whatever the number says.
+        confidence = _confidence(reply.get("confidence"))
+        because = str(reply.get("because", "")).strip()
+        haystack = _squash(subject + " " + body)
+        grounded = bool(because) and _squash(because) in haystack
+        if because and not grounded:
+            confidence = min(confidence, UNGROUNDED_CEILING)
+            self.stats.triage_ungrounded += 1
+
+        self.stats.triage_confidence.append(confidence)
         if category in CATEGORIES:
             self.stats.triage_accepted += 1
             self.stats.say(f"classified as {category}")

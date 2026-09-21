@@ -23,6 +23,10 @@ class AgentStats:
     rejected_placeholder: int = 0
     triage_calls: int = 0
     triage_accepted: int = 0
+    # What it said about its own certainty, and how often the phrase it
+    # claimed to be reading was not in the email.
+    triage_confidence: list[float] = dc_field(default_factory=list)
+    triage_ungrounded: int = 0
     # Asked, never answered. Not an abstention.
     rate_limited: int = 0
     failed: int = 0

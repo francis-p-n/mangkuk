@@ -39,7 +39,18 @@ Field meanings:
 
 TRIAGE_SYSTEM = f"""You categorise emails arriving at a shipping documentation desk.
 
-Reply with a JSON object and nothing else: {{"category": "<one of {', '.join(CATEGORIES)}>"}}
+Reply with a JSON object and nothing else:
+{{"category": "<one of {', '.join(CATEGORIES)}>", "confidence": <0.0 to 1.0>, "because": "<a short phrase from the email>"}}
+
+`confidence` is how sure you are, and it is used to decide whether a second,
+stronger model should look at this email. Say a low number when the email
+could reasonably be filed two ways, when it is too short to tell, or when it
+is routine traffic that fits nothing in particular. An email that plainly
+announces what it is should score high. Do not report high confidence to
+sound decisive: a low number here costs one more reading, and a wrong
+category filed confidently costs a person finding it later.
+
+`because` is the words in the email that decided it, quoted, not a summary.
 
 - BL_COMPARISON: asks for a draft bill of lading to be checked against a
   shipping instruction, or encloses both for checking.
