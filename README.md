@@ -7,9 +7,10 @@
 
 > **Team mangkuk — team submission** 🏅
 
-> "The check a shipping clerk does by eye, done the same way every time" —
-> comparing every draft bill of lading against the instruction that ordered it,
-> ranking what is wrong by what it would cost, and writing the correction email.
+> "One folder per shipment, and the paperwork checked before you open it" —
+> every email about a container filed together by its reference, the draft bill
+> of lading compared against the instruction that ordered it, and what is wrong
+> ranked by what it would cost.
 
 ### 🌐 [Live site](https://mangkuk-livid.vercel.app) &nbsp;·&nbsp; 🎬 [Video](#) &nbsp;·&nbsp; 📊 [Slide deck](#)
 
@@ -28,19 +29,24 @@
 
 ## 🌟 Vision
 
-Every container that moves generates a draft bill of lading, and every one has
-to be checked against the shipping instruction that ordered it. Today that is
-done by eye, hundreds of times a week, under time pressure. easyLogistics does
-the comparison in ordinary deterministic code — same documents, same answer,
-every rule inspectable — and gives the clerk a short queue, ranked by what each
-error would actually cost, with the correction email already written.
+A shipping desk does not have a queue of emails. It has shipments, and the
+mail about each one arrives over days from different people — the instruction,
+the draft bill of lading, the chase, the correction, the confirmation — with
+nothing but a reference number tying them together. Finding "everything about
+the Karachi box for Linden & Hale" means searching a mailbox and hoping.
+
+easyLogistics files mail by shipment rather than by arrival, and checks the
+paperwork inside each file. The comparison is ordinary deterministic code —
+same documents, same answer, every rule inspectable — so a clerk gets one
+folder per container, a short queue ranked by what each error would actually
+cost, and the correction email already written.
 
 ### The Problem
-- A draft bill of lading arrives for every container and must be checked by hand
-- Seven details must match: shipper, consignee, both ports, containers, weight, notify party
-- One wrong detail can misroute cargo, release it to the wrong company, or fail customs
+- Mail about one shipment arrives over days, from several people, out of order
+- Finding everything about a container means searching a mailbox and hoping
+- Every draft bill of lading must then be checked by hand against its instruction
+- One wrong detail can misroute cargo, release it to the wrong party, or fail customs
 - Harmless differences — `21.577,00 KG` vs `21,577 KG` — look identical to a naive checker
-- A false alarm costs trust; a missed defect costs a container
 
 ### The Solution
 | Capability | How easyLogistics Solves It |
@@ -174,6 +180,9 @@ python eval/rubric.py              # every claim in docs/validation.md, verified
 - [x] Supabase schema, loader, and row-level security
 - [x] Next.js dashboard reading the run from Postgres
 - [x] Rubric harness checking every published claim against a live run
+- [ ] Group correspondence into one file per shipment, by shared reference
+- [ ] A shipment state that can close, so a corrected draft clears the queue
+- [ ] Suggest a file for the 123 emails that carry no reference at all
 - [ ] OCR for the five PDFs with no extractable text
 - [ ] Learned-corrections page ported to the Next.js app
 - [ ] Live mailbox connection instead of a folder
