@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { ListRow, Labels } from "@/lib/supabase";
 import type { Result } from "@/lib/format";
-import { useResult } from "@/lib/useResult";
+import { useResult, PANEL_ID } from "@/lib/useResult";
 import ShipmentRow from "./ShipmentRow";
 import Detail from "./Detail";
 import PanelSkeleton from "./PanelSkeleton";
@@ -80,6 +80,7 @@ export default function ShipmentList({
       </section>
 
       <section
+        id={PANEL_ID}
         className="card"
         aria-labelledby="shipment-name"
         aria-live="polite"
@@ -104,7 +105,7 @@ export default function ShipmentList({
         ) : (
           <p className="allclear" style={{ padding: "28px 22px" }}>
             {failed ??
-              "Choose a shipment on the left to see the seven details that were checked."}
+              "Choose a shipment to see the seven details that were checked."}
           </p>
         )}
       </section>

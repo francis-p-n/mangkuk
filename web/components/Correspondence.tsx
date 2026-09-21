@@ -4,7 +4,7 @@ import { Mail } from "lucide-react";
 import type { Labels } from "@/lib/supabase";
 import type { Result } from "@/lib/format";
 import { isComparison } from "@/lib/graph";
-import { useResult } from "@/lib/useResult";
+import { useResult, PANEL_ID } from "@/lib/useResult";
 import StatusIcon from "./StatusIcon";
 import Detail from "./Detail";
 import PanelSkeleton from "./PanelSkeleton";
@@ -96,6 +96,7 @@ export default function Correspondence({
       </section>
 
       <section
+        id={PANEL_ID}
         className="card"
         aria-labelledby="shipment-name"
         aria-live="polite"

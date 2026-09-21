@@ -118,7 +118,7 @@ export default async function Search({
           <h1>Every shipment</h1>
           <p className="date">
             {rows.length === PAGE
-              ? `The first ${PAGE}. Narrow the search to see the rest.`
+              ? `The first ${PAGE} of ${run.totals.emails}. Narrow the search to see the rest.`
               : `${shipments.length} shipment${
                   shipments.length === 1 ? "" : "s"
                 }${

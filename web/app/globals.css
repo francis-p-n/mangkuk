@@ -546,8 +546,23 @@ tr.bad th[scope="row"] {
 .note-inline { color: var(--ink-faint); font-size: 13px; margin-left: 8px; }
 
 @media (max-width: 640px) {
-  .topbar-inner { gap: 12px; padding: 9px 16px; }
-  .topbar .brand-name { display: none; }
+  /* Two rows, not three stacked links.
+     `.brand-name` was hidden here to buy the nav some width, but the bar
+     renders a wordmark image now and has had no `.brand-name` for a while -
+     so nothing was narrowing, `nav { flex: 1; flex-wrap: wrap }` had about
+     150px to work with, and the three links stacked into a 160px-tall
+     header on every page of a 812px-tall phone. The logo and the theme
+     control take the first row; the sections get a row of their own and
+     scroll sideways if a fourth is ever added. */
+  .topbar-inner { gap: 10px 12px; padding: 8px 16px; flex-wrap: wrap; }
+  .topbar .brand { order: 1; }
+  .topbar .theme { order: 2; margin-left: auto; }
+  .topbar nav {
+    order: 3; flex-basis: 100%; flex-wrap: nowrap;
+    gap: 6px; overflow-x: auto; scrollbar-width: none;
+  }
+  .topbar nav::-webkit-scrollbar { display: none; }
+  .topbar nav a { white-space: nowrap; padding: 5px 11px; font-size: 14px; }
   .facts { grid-template-columns: 1fr; gap: 3px 0; }
   .facts dd { margin-bottom: 9px; }
 }
@@ -728,3 +743,8 @@ tr.bad th[scope="row"] {
 @media (prefers-reduced-motion: reduce) {
   .skel-line, .skel-tag, .skel-row { animation: none; }
 }
+
+/* The panel is scrolled to on a narrow screen, where the bar is sticky and
+   two rows tall - without this the shipment's own name lands underneath it. */
+#open-shipment { scroll-margin-top: 104px; }
+@media (min-width: 641px) { #open-shipment { scroll-margin-top: 72px; } }
