@@ -3,7 +3,7 @@
 [![Hackathon](https://img.shields.io/badge/Hackathon-Averis%202026-blue)](#)
 [![Team](https://img.shields.io/badge/Team-mangkuk-orange)](#)
 [![Stack](https://img.shields.io/badge/Stack-Python%20%7C%20Next.js%20%7C%20Supabase-green)](#)
-[![Tests](https://img.shields.io/badge/Tests-394%20passing-brightgreen)](docs/validation.md)
+[![Tests](https://img.shields.io/badge/Tests-404%20passing-brightgreen)](docs/validation.md)
 
 > **Team mangkuk — team submission** 🏅
 
@@ -51,6 +51,7 @@ cost, and the correction email already written.
 ### The Solution
 | Capability | How easyLogistics Solves It |
 |---|---|
+| **One File Per Shipment** | Emails sharing a reference are one file — a shipment, not a queue position |
 | **Deterministic Comparison** | Seven fields compared in plain code — no AI, no variance, every rule inspectable |
 | **Normalization** | European decimals, tonnes, port aliases and company suffixes resolved before comparing |
 | **Severity Ranking** | Each defect banded by consequence, so the worst is worked first |
@@ -109,7 +110,7 @@ throttled run still produces an identical valid submission.
 | **Spreadsheets** | openpyxl | Reading `.xlsx` shipping instructions |
 | **Word Documents** | python-docx | Reading `.docx` bills of lading |
 | **PDFs** | pypdf | Text extraction from `.pdf` attachments |
-| **Testing** | pytest | 394 tests covering every rule, escalation, box type and guardrail |
+| **Testing** | pytest | 404 tests covering every rule, escalation, box type, filing rule and guardrail |
 | **Frontend Framework** | Next.js 15 + React 19 | Server-rendered dashboard |
 | **Language** | TypeScript | Type safety across the web app |
 | **Database** | Supabase (PostgreSQL) | One row per email, JSONB for nested detail |
@@ -163,7 +164,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 ### Checking the claims
 ```bash
-python -m pytest tests -q          # 394 tests
+python -m pytest tests -q          # 404 tests
 python eval/rubric.py              # every claim in docs/validation.md, verified
 ```
 
@@ -180,7 +181,7 @@ python eval/rubric.py              # every claim in docs/validation.md, verified
 - [x] Supabase schema, loader, and row-level security
 - [x] Next.js dashboard reading the run from Postgres
 - [x] Rubric harness checking every published claim against a live run
-- [ ] Group correspondence into one file per shipment, by shared reference
+- [x] Group correspondence into one file per shipment, by shared reference
 - [ ] A shipment state that can close, so a corrected draft clears the queue
 - [ ] Suggest a file for the 123 emails that carry no reference at all
 - [ ] OCR for the five PDFs with no extractable text

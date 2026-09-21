@@ -637,3 +637,48 @@ tr.bad th[scope="row"] {
 .mail-file-role { color: var(--ink-faint); }
 
 @media (prefers-reduced-motion: reduce) { .mail-chev { transition: none; } }
+
+/* --- one shipment's file ----------------------------------------------- */
+.crumb { margin: 0 0 6px; font-size: 13.5px; }
+.crumb a { color: var(--ink-faint); text-decoration: none; }
+.crumb a:hover { color: var(--brand); text-decoration: underline; }
+.crumb a::before { content: "‹ "; }
+
+.resolved {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 18px; padding: 12px 16px;
+  background: var(--fine-wash); border: 1px solid var(--rule);
+  border-left: 3px solid var(--fine); border-radius: 0 var(--r) var(--r) 0;
+  color: var(--fine); font-size: 14.5px;
+}
+.resolved svg { flex: none; }
+
+.thread { list-style: none; margin: 0; padding: 0; }
+.thread-item {
+  display: flex; gap: 11px; padding: 13px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.thread li:last-child .thread-item { border-bottom: 0; }
+.thread-item svg { color: var(--ink-faint); flex: none; margin-top: 3px; }
+.thread-item.is-open { background: var(--brand-wash); }
+.thread-item.is-open svg { color: var(--brand); }
+.thread-body { display: grid; gap: 3px; min-width: 0; }
+.thread-subject {
+  font-size: 14px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.thread-from {
+  font-size: 12.5px; color: var(--ink-faint); font-family: var(--mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.thread-state {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; margin-top: 2px;
+}
+.thread-state.fix { color: var(--fix); }
+.thread-state.look { color: var(--look); }
+.thread-state.fine { color: var(--fine); }
+.thread-note {
+  margin: 0; padding: 13px 16px; border-top: 1px solid var(--rule);
+  color: var(--ink-faint); font-size: 13.5px; line-height: 1.6;
+}

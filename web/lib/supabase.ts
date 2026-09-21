@@ -194,11 +194,23 @@ export async function one(
  */
 export async function search(
   runId: string,
-  { q, status }: { q?: string; status?: string }
+  {
+    q,
+    status,
+    from,
+    to,
+  }: { q?: string; status?: string; from?: string; to?: string }
 ): Promise<ListRow[]> {
   let query = db().from("results").select(LIST_COLUMNS).eq("run_id", runId);
 
   if (status && status !== "ALL") query = query.eq("status", status);
+
+  // Postgres does the narrowing, same as the status filter. A country is
+  // matched inside the port string rather than against a stored column,
+  // because the port already carries it and a second copy would be a second
+  // thing to keep true.
+  if (from) query = query.ilike("shipment->>port_of_loading", `%${from}%`);
+  if (to) query = query.ilike("shipment->>port_of_discharge", `%${to}%`);
 
   if (q && q.trim()) {
     // ilike across the columns a person types into, plus the shipment JSON so

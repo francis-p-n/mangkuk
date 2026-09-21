@@ -169,7 +169,7 @@ export default async function Today() {
                       <ShipmentRow
                         s={s}
                         labels={labels}
-                        href={`/search?id=${encodeURIComponent(s.email_id)}`}
+                        href={`/shipment/${encodeURIComponent(s.oc_number || s.booking_ref || s.email_id)}`}
                       />
                     </li>
                   ))
