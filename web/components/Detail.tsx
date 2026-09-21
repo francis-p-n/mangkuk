@@ -102,13 +102,19 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
 
   const tone = labels.tone?.[s.status] ?? "fine";
   const n = s.defect_fields.length;
+  // Symmetric on purpose. What the comparison established is that the two
+  // documents disagree - not which of them is wrong. Usually it is the draft,
+  // but the instruction on our file can be the stale one, and a desk that has
+  // been told the draft is wrong will ask a carrier to amend a correct bill to
+  // match it. Naming a culprit the check cannot identify is how this tool
+  // would cause the error it exists to prevent.
   const verdict =
     s.status === "MISMATCH"
-      ? `${n === 1 ? "One detail" : n === 2 ? "Two details" : `${n} details`} on the carrier's draft ${
-          n === 1 ? "does" : "do"
-        } not match your instruction.`
+      ? `${n === 1 ? "One detail" : n === 2 ? "Two details" : `${n} details`} ${
+          n === 1 ? "disagrees" : "disagree"
+        } between your instruction and the carrier's draft.`
       : s.status === "OK"
-        ? "Every detail on the carrier's draft matches your instruction."
+        ? "Your instruction and the carrier's draft agree on every detail."
         : "We could not check this one, so it needs your eyes.";
 
   const bad = (s.comparisons ?? []).filter((c) => c.agree === false);
@@ -196,8 +202,8 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
           </div>
           {n > 0 && (
             <p className="todo">
-              Ask the carrier to correct{" "}
-              {n === 1 ? "this detail" : "these details"} and send a new draft.
+              Check {n === 1 ? "this detail" : "these details"} with the
+              carrier, and have whichever document is wrong corrected.
             </p>
           )}
         </>
