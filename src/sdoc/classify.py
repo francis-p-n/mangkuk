@@ -52,6 +52,34 @@ INVOICE_PHRASES = (
     "query on invoice", "cancel invoice", "local charge", "thc /",
     "billed separately", "advise the breakdown", "d & d charges",
     "telex release charge", "total freight",
+    # Written "D&D / detention charges" in the body and "D & D charges" in
+    # the subject, so the subject phrase above never matched the message. 18
+    # emails were being decided by whichever subject the generator happened
+    # to staple on.
+    "detention charges",
+    # "The GR is still missing for invoice X. Kindly arrange to post the GR so
+    # we can proceed with billing." Filed as an invoice question because it
+    # names an invoice and blocks billing; the reading is argued, and marked
+    # contested, in eval/gold/clusters.json. Whichever way it is read, all 23
+    # must read the same way, and before this they split 13/10 on the subject.
+    "post the gr",
+)
+
+# Operational traffic, recognised by what it says rather than by nothing else
+# matching. Every one of these is a template in the corpus - a berthing
+# report, an outstanding-BL worklist, a loading update, a robot announcing it
+# has finished, an office-hours notice - and each was falling through to the
+# default, where a subject line stapled on by the generator could pick it up
+# and file it as something else entirely.
+OPERATIONAL_PHRASES = (
+    "berthing report",
+    "outstanding bl",
+    "update summary",
+    "loading completed",
+    "automated notification",
+    "no action required",
+    "resumes normal operations",
+    "action the pending items",
 )
 INVOICE_SUBJECTS = (
     "invoice", "local charges", "total freight", "d & d charges",
@@ -100,8 +128,14 @@ def classify(
     missing_attachment, and is kept only as insurance against the organizers'
     scorer disagreeing.
     """
-    subj = subject.lower()
-    text = clean_body(body).lower()
+    subj = " ".join(subject.lower().split())
+    # Flattened before matching. Every phrase below is written with single
+    # spaces, and a mail client that hard-wraps at 72 characters puts a
+    # newline through the middle of one: a wrapped "query on invoice"
+    # then matches nothing and the email falls to the default. Nothing
+    # in this corpus wraps, which is a fact about the generator rather
+    # than about mail.
+    text = " ".join(clean_body(body).lower().split())
 
     if sender_domain in SPAM_DOMAINS:
         return Classification("SPAM", "spam_domain", 0.99)
@@ -120,10 +154,31 @@ def classify(
         # agent no longer spends 91 calls second-guessing a settled rule.
         return Classification("GENERAL", "chasing_draft_bl", 0.88)
 
-    if any(p in text for p in SI_PHRASES) or any(s in subj for s in SI_SUBJECTS):
+    if any(p in text for p in SI_PHRASES):
         return Classification("SI_REQUEST", "si_workflow", 0.92)
 
-    if any(p in text for p in INVOICE_PHRASES) or any(s in subj for s in INVOICE_SUBJECTS):
+    if any(p in text for p in INVOICE_PHRASES):
         return Classification("INVOICE_QUERY", "invoice_signal", 0.90)
+
+    if any(p in text for p in OPERATIONAL_PHRASES):
+        return Classification("GENERAL", "operational_notice", 0.90)
+
+    # The body said nothing, so now - and only now - the subject gets a vote.
+    #
+    # It used to vote alongside the body, and in this corpus that is a bad
+    # trade. Subjects and bodies are drawn independently for operational mail:
+    # email_075 is headed "Time Off Request" and its body is an RPA billing
+    # notice, email_021 is headed "_RPA_ India HSS SD Billing Process
+    # Completed" and asks for shipping instructions. A subject rule reading
+    # over the body split seven templates down the middle - 94 emails written
+    # from the same sentence, filed under two categories depending on which
+    # heading they were given. The body is what somebody is being asked to act
+    # on; the subject is a hint for when the body is silent, which is exactly
+    # the eleven messages here that have no body at all.
+    if any(s in subj for s in SI_SUBJECTS):
+        return Classification("SI_REQUEST", "si_subject", 0.80)
+
+    if any(s in subj for s in INVOICE_SUBJECTS):
+        return Classification("INVOICE_QUERY", "invoice_subject", 0.80)
 
     return Classification("GENERAL", "default", 0.55)

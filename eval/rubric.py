@@ -357,6 +357,79 @@ def build(text: dict[str, str]) -> list[Criterion]:
         return Outcome(p.returncode == 0, f"{got} grouping tests pass{drift}")
 
     crits.append(Criterion(8, "Grouping", f"{want_group} tests", c8))
+    # 9 - is the classifier right, not just confident
+    (want_templates,) = claim("classification templates", text,
+                              "a template count")
+    (want_covered,) = claim("classification labelled", text,
+                            "how many emails carry a label")
+    (want_wrong,) = claim("classification disagreements", text,
+                          "a disagreement count")
+    (want_split,) = claim("split templates", text, "a split-template count")
+
+    def c9() -> Outcome:
+        code, out = shell("eval/classification.py")
+        stop = broken(code, out)
+        if stop:
+            return stop
+        m = re.search(
+            r"SUMMARY templates=([0-9]+) covered=([0-9]+) wrong=([0-9]+) "
+            r"split=([0-9]+) macro_f1=([0-9.]+)", out)
+        if not m:
+            return Outcome(False, "no summary line", out.strip()[-400:])
+        templates, covered, wrong, split = (int(m.group(i)) for i in range(1, 5))
+        macro = float(m.group(5))
+        bad = []
+        if wrong > want_wrong:
+            bad.append(f"{wrong} disagreement(s) with the labels "
+                       f"(claimed {want_wrong})")
+        if split > want_split:
+            bad.append(f"{split} template(s) split across categories "
+                       f"(claimed {want_split})")
+        if covered < want_covered:
+            bad.append(f"only {covered} emails labelled (claimed {want_covered})")
+        if templates != want_templates:
+            bad.append(f"{templates} templates, the claims table says "
+                       f"{want_templates} - relabel before trusting this")
+        return Outcome(not bad and code == 0,
+                       f"macro-F1 {macro:.4f} over {covered} labelled emails, "
+                       f"{wrong} wrong, {split} split",
+                       "; ".join(bad))
+
+    crits.append(Criterion(9, "Classification accuracy",
+                           f"{want_covered} labelled, {want_wrong} wrong, "
+                           f"{want_split} split", c9))
+
+    # 10 - and would the harness notice if it stopped being right
+    (want_live,) = claim("classifier mutants", text, "a live-mutant count")
+    (want_killed,) = claim("classifier mutants killed", text, "a kill count")
+
+    def c10() -> Outcome:
+        code, out = shell("eval/classifier_mutation.py")
+        stop = broken(code, out)
+        if stop:
+            return stop
+        m = re.search(
+            r"SUMMARY mutants=([0-9]+) live=([0-9]+) killed=([0-9]+) "
+            r"equivalent=([0-9]+) old_check_killed=([0-9]+)", out)
+        if not m:
+            return Outcome(False, "no summary line", out.strip()[-400:])
+        _, live, killed, equivalent, old = (int(m.group(i)) for i in range(1, 6))
+        bad = []
+        if killed < live:
+            bad.append(f"{live - killed} mutant(s) survived - the harness "
+                       f"cannot see them")
+        if killed < want_killed:
+            bad.append(f"{killed} killed, the claims table states {want_killed}")
+        if live < want_live:
+            bad.append(f"only {live} mutant(s) changed an answer "
+                       f"(claimed {want_live}) - the catalogue has gone stale")
+        return Outcome(not bad and code == 0,
+                       f"{killed}/{live} killed, {equivalent} changed nothing "
+                       f"(the old residue check: {old}/{live})",
+                       "; ".join(bad))
+
+    crits.append(Criterion(10, "Classifier mutation",
+                           f"{want_killed}/{want_live} killed", c10))
     return crits
 
 

@@ -1,6 +1,6 @@
 # How the accuracy was established
 
-No ground truth ships with the bundle, so correctness is shown seven ways.
+No ground truth ships with the bundle, so correctness is shown ten ways.
 Every number here is reproducible from the commands in the README.
 
 ## The claims
@@ -12,14 +12,14 @@ only one place they are written.
 
 | Claim | Value |
 |---|---|
-| tests passing | 432 |
+| tests passing | 498 |
 | defects injected | 602 |
 | defects caught | 602 |
 | desk cases | 31 |
 | desk cases missed | 0 |
 | desk cases false alarms | 0 |
 | edge block split | 5/5/5/5 |
-| classifier residue | 59 |
+| classifier residue | 0 |
 | corpus emails | 520 |
 | agent guardrail tests | 62 |
 | unseen cases | 5 |
@@ -27,15 +27,21 @@ only one place they are written.
 | unseen defects invented | 0 |
 | unseen defects waved through | 0 |
 | grouping tests | 29 |
+| classification templates | 33 |
+| classification labelled | 520 |
+| classification disagreements | 0 |
+| split templates | 0 |
+| classifier mutants | 9 |
+| classifier mutants killed | 9 |
 
 ## Testing and validation
 
-There is no ground truth in the bundle, so accuracy is established seven ways.
+There is no ground truth in the bundle, so accuracy is established ten ways.
 
-### 1. Test suite — 432 tests, all passing
+### 1. Test suite — 498 tests, all passing
 
 ```
-432 passed in 16.3s
+498 passed in 16.7s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -111,11 +117,20 @@ separators (`243588` vs `243,588`) and ports where one side omits the
 UN/LOCODE. Every one was inspected by hand. The comparator is doing very
 little quiet work, which is the point.
 
-**Classifier residue.** 59 of 520 emails (11.3%) fall through every rule to
-the default. These are the genuine judgement calls — RPA billing
-notifications, berthing reports, a time-off request — and they are precisely
-the residue an LLM stage should own. Rules decide the remaining 88.7% at high
-confidence.
+**Classifier residue.** 0 of 520 emails now fall through to the default: every
+template in the bundle is recognised by something it says. It was 59, and the
+59 were RPA billing notifications, berthing reports and an office-hours notice
+— operational mail that no rule named, so it arrived at GENERAL by exhaustion
+rather than by evidence.
+
+That distinction mattered more than it looks, and section 8 is the reason this
+paragraph is no longer the headline. Residue is a coverage figure. It says how
+much the rules will decide, not how much they decide correctly, and it is
+one-sided: it only ever rose. Broadening a single invoice rule until 55
+berthing reports and a time-off request were filed as invoice questions
+*improved* it from 59 to 4 while leaving every test green. A number that
+rewards a worse classifier is not evidence, and it is now reported next to one
+that is.
 
 The 91 draft-chasers used to sit in this residue too, held at low confidence
 while the question was open. [docs/assumptions.md](assumptions.md) now settles
@@ -246,7 +261,92 @@ checks before choosing the deciding email, so a file could only ever end on a
 failure, and `resolved` was unreachable for every folder shape the pipeline
 can emit.
 
-### 8. Documents the bundle never contained — 5 cases, 0 judged wrongly
+### 8. Is the classifier right — 520 labelled, 0 disagreements
+
+Every other check on this page measures the comparison stage. The classifier
+had nothing measuring it at all: the only number anyone quoted was the
+residue, which counts how much the rules will decide and says nothing about
+whether they decide correctly. The gap was not theoretical. Adding three
+plausible words to one invoice rule refiled 55 berthing reports, RPA
+notifications and a time-off request as invoice questions — 432 tests still
+passed, and the residue figure *improved* from 59 to 4.
+
+Fixing that needs labels, and the bundle ships none. Labelling 520 emails by
+hand is a day nobody has; labelling them with the classifier's own phrase list
+only asks the classifier whether it agrees with itself.
+
+**The corpus is written from templates, and a template is recoverable.** Strip
+the security banner, the greeting, the quoted reply and the signature block;
+keep the opening clause; replace every name, port, vessel, reference and
+number with a placeholder. What is left is the sentence the template was built
+from. `eval/fingerprint.py` does this and recovers **33 templates covering all
+520 emails**, 2 of them singletons, none mixing two kinds of email.
+
+So a person reads 33 exemplars and decides 33 times.
+`eval/gold/clusters.json` records each decision with the exemplar it was read
+from and a sentence of reasoning, so the judgement can be argued with rather
+than taken on trust.
+
+```
+macro-F1              : 1.0000   (over 406 plainly-labelled emails)
+accuracy              : 1.0000   (406/406)
+templates split across categories : 0
+```
+
+Two rules the scorer keeps on itself. It will not score against a label nobody
+was sure of — only rows at confidence 0.90 or above are used, and anything
+lower counts against coverage rather than against the classifier. And it will
+not let a judgement call flatter the result: two templates are marked
+**contested** — the 91 draft-chasers, and 23 notes about a missing goods
+receipt that block an invoice — because the taxonomy has two boxes that
+genuinely fit. Those 114 emails are scored on their own line, not folded into
+the headline.
+
+**A second signal that needs no labels at all.** Emails written from one
+template are one message, so a classifier that files them under two categories
+is being decided by something that is not the message. That check found the
+real bug: **subjects and bodies are drawn independently in this corpus** for
+operational mail — `email_075` is headed "Time Off Request" over an RPA
+billing notice, `email_021` is headed "_RPA_ India HSS SD Billing Process
+Completed" and asks for shipping instructions. The classifier read the subject
+alongside the body, so seven templates split down the middle: 94 emails
+written from the same sentence, filed under two categories depending on which
+heading the generator had stapled on.
+
+Three changes followed, and all three are the same change: **the message
+decides.** The body is matched first and the subject only votes when the body
+is silent (which is the eleven messages here that have no body at all).
+Operational traffic — berthing reports, outstanding-BL worklists, loading
+updates, robot notifications — is recognised by what it says instead of
+arriving at GENERAL by exhaustion. And the body is flattened before matching,
+because a mail client that hard-wraps at 72 characters puts a newline through
+the middle of "query on invoice" and nothing in this corpus wraps.
+
+### 9. Would the harness notice — 9 live mutants, 9 killed
+
+An accuracy of 1.0000 against labels is worth exactly as much as the harness's
+ability to fail. `eval/classifier_mutation.py` applies fourteen realistic
+regressions to the live rules and asks, of each, whether the checks go red.
+
+```
+mutants                : 14
+changed an answer      : 9  (5 changed none, so there was nothing to catch)
+killed                 : 9/9
+the old residue check  : 7/9
+```
+
+Five mutants are *equivalent*: they rewrite a rule that cannot matter because
+something earlier already decided. Deleting every spam phrase changes no
+answer in this corpus, because spam is caught entirely by the sender domain
+list — worth knowing on its own, since it means one list is doing all of that
+work. Counting those as survivors would understate the harness and counting
+them as kills would flatter it, so they are reported apart from both.
+
+The old residue check kills 7 of the 9. The two it misses are the two that
+matter most: both make the rules decide *more*, and wrongly, which the residue
+figure reads as an improvement.
+
+### 10. Documents the bundle never contained — 5 cases, 0 judged wrongly
 
 Every other check here measures the checker against the supplied corpus, which
 cannot tell a system that has learned the shipping framework from one that has

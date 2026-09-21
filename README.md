@@ -3,7 +3,7 @@
 [![Hackathon](https://img.shields.io/badge/Hackathon-Averis%202026-blue)](#)
 [![Team](https://img.shields.io/badge/Team-mangkuk-orange)](#)
 [![Stack](https://img.shields.io/badge/Stack-Python%20%7C%20Next.js%20%7C%20Supabase-green)](#)
-[![Tests](https://img.shields.io/badge/Tests-432%20%2B%2029%20passing-brightgreen)](docs/validation.md)
+[![Tests](https://img.shields.io/badge/Tests-498%20%2B%2029%20passing-brightgreen)](docs/validation.md)
 
 > **Team mangkuk — team submission** 🏅
 
@@ -65,6 +65,7 @@ cost, and the correction email already written.
 ## 🌍 Impact
 
 - **Fewer wrong bills of lading**: 602 injected defects, 602 caught, zero collateral flags
+- **Mail filed correctly**: 520 emails hand-labelled through 33 templates, 0 disagreements
 - **Less wasted chasing**: 31 real-world document quirks, 0 false alarms raised
 - **Clerk time returned**: 84.5% of comparison requests decided without a human
 - **Auditable by design**: every verdict cites the line and label it came from
@@ -79,8 +80,11 @@ cannot read a document, and it is disbelieved by default: 62 tests hold it to
 that. Default is `off`, so the scored run stays reproducible from the repo alone.
 
 ### 📋 Triage Agent
-Classifies only what the rule-based classifier abstained on — 59 of 520 emails
-in the supplied bundle. Rules decide the remaining 88.7% at high confidence.
+Classifies only what the rule-based classifier abstains on, which on this
+bundle is nothing: every one of the 33 templates it is written from is
+recognised by something the message says, so rules decide all 520 at high
+confidence and the agent is never called. It is there for the mail that does
+not match a template anyone has seen.
 
 ### 🔍 Field Resolver Agent
 Recovers fields the parsers could not read. It may only *point at* a value
@@ -110,7 +114,7 @@ throttled run still produces an identical valid submission.
 | **Spreadsheets** | openpyxl | Reading `.xlsx` shipping instructions |
 | **Word Documents** | python-docx | Reading `.docx` bills of lading |
 | **PDFs** | pypdf | Text extraction from `.pdf` attachments |
-| **Testing** | pytest + node:test | 432 + 29 tests covering every rule, escalation, box type, filing rule and guardrail |
+| **Testing** | pytest + node:test | 498 + 29 tests covering every rule, escalation, box type, filing rule and guardrail |
 | **Frontend Framework** | Next.js 15 + React 19 | Server-rendered dashboard |
 | **Language** | TypeScript | Type safety across the web app |
 | **Database** | Supabase (PostgreSQL) | One row per email, JSONB for nested detail |
@@ -164,8 +168,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 ### Checking the claims
 ```bash
-python -m pytest tests -q          # 432 tests
+python -m pytest tests -q          # 498 tests
 npm test --prefix web              # 29 grouping tests
+python eval/classification.py      # the classifier against hand-labelled templates
+python eval/classifier_mutation.py # and whether the harness would notice if it broke
 python eval/rubric.py              # every claim in docs/validation.md, verified
 ```
 

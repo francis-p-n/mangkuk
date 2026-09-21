@@ -1,0 +1,230 @@
+{
+  "_README": [
+    "Ground truth for the classifier, decided once per template.",
+    "",
+    "The bundle ships no labels. These were made by reading one exemplar per",
+    "template produced by eval/fingerprint.py - 33 decisions covering all 520",
+    "emails - and each row records the exemplar it was decided from, so the",
+    "judgement can be checked rather than taken on trust.",
+    "",
+    "THE LABEL FOLLOWS THE BODY. In this corpus subjects and bodies are drawn",
+    "independently for operational mail: email_075 is headed 'Time Off Request'",
+    "and its body is an RPA billing notice, email_021 is headed '_RPA_ India HSS",
+    "SD Billing Process Completed' and asks for shipping instructions. Where the",
+    "two disagree the body is the message, because the body is what a person is",
+    "being asked to do something about. The strongly-typed templates do not",
+    "disagree: all 99 shipping instructions carry an SI subject.",
+    "",
+    "confidence is how sure the reading is, and only rows at 0.90 or above are",
+    "used as ground truth. Anything lower is reported as undecided and counts",
+    "against coverage rather than against the classifier.",
+    "",
+    "contested marks a label that is a defensible judgement rather than a plain",
+    "reading, usually because the taxonomy has two boxes that both fit. Those",
+    "rows are scored separately, so a disagreement about a judgement call cannot",
+    "be mistaken for a bug - and cannot be quietly used to inflate the score",
+    "either."
+  ],
+  "labels": {
+    "bad48b7aeb": {
+      "label": "SI_REQUEST",
+      "confidence": 1.0,
+      "exemplar": "email_007",
+      "why": "The shipping instruction itself, inlined: POL, POD, shipper, consignee, containers, weight. Submitting an instruction is the SI workflow."
+    },
+    "3c78e0f39c": {
+      "label": "SI_REQUEST",
+      "confidence": 1.0,
+      "exemplar": "email_039",
+      "why": "The same instruction template with an FCL line. Same workflow."
+    },
+    "b294ccd193": {
+      "label": "SI_REQUEST",
+      "confidence": 0.95,
+      "exemplar": "email_021",
+      "why": "'Please submit SI & AED for all pending shipments by end of day.' A chase for instructions is part of the instruction workflow, not general traffic."
+    },
+    "112319d236": {
+      "label": "BL_COMPARISON",
+      "confidence": 1.0,
+      "exemplar": "email_001",
+      "why": "'Attached are the SI and draft BL ... please check the details and confirm', with both documents attached. The core request this product exists for."
+    },
+    "a830c98e49": {
+      "label": "BL_COMPARISON",
+      "confidence": 1.0,
+      "exemplar": "email_005",
+      "why": "Instruction and draft bill of lading attached, sent for confirmation."
+    },
+    "5a74c65cb3": {
+      "label": "BL_COMPARISON",
+      "confidence": 1.0,
+      "exemplar": "email_025",
+      "why": "'Check the draft BL against the SI ... revert with any discrepancy.' The comparison asked for in as many words."
+    },
+    "799853247c": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.98,
+      "exemplar": "email_516",
+      "why": "'Compare the SI and draft BL ... some SI fields were left blank.' A comparison that will escalate is still a comparison."
+    },
+    "839a77feb9": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.95,
+      "exemplar": "email_506",
+      "why": "'Compare the SI and draft BL ... (attachments appear to have been dropped).' The request is a comparison; the files went astray in transit."
+    },
+    "a1b8184f18": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.95,
+      "exemplar": "email_507",
+      "why": "As above, with the draft named as the missing one."
+    },
+    "a62c10f65c": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.95,
+      "exemplar": "email_501",
+      "why": "'Please find attached the SI and the Commercial Invoice ... confirm the BL is in order.' A check was asked for; the carrier attached the wrong document."
+    },
+    "30cbb886ce": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.95,
+      "exemplar": "email_503",
+      "why": "The same, with a Certificate of Origin in place of the bill of lading."
+    },
+    "a2b2fd9b41": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.95,
+      "exemplar": "email_512",
+      "why": "'Attached SI and draft BL for checking (scanned copies, image only).' A check that cannot be completed is still a check requested."
+    },
+    "5821fe8d60": {
+      "label": "BL_COMPARISON",
+      "confidence": 0.95,
+      "exemplar": "email_511",
+      "why": "As above, with an unopenable file."
+    },
+    "eaa960b650": {
+      "label": "INVOICE_QUERY",
+      "confidence": 1.0,
+      "exemplar": "email_002",
+      "why": "'Query on invoice ...: is the THC / local charge included or billed separately?' A charge question about a named invoice."
+    },
+    "6de865d0cd": {
+      "label": "INVOICE_QUERY",
+      "confidence": 0.95,
+      "exemplar": "email_017",
+      "why": "'D&D / detention charges ... confirm the amount before we release payment.' A charge to be agreed before it is paid."
+    },
+    "b7ca43a010": {
+      "label": "INVOICE_QUERY",
+      "confidence": 0.95,
+      "exemplar": "email_108",
+      "why": "'Requesting to cancel invoice ... and reverse the PGI.' An instruction about an invoice."
+    },
+    "27a99a0794": {
+      "label": "INVOICE_QUERY",
+      "confidence": 0.9,
+      "contested": true,
+      "exemplar": "email_024",
+      "why": "'The GR is still missing for invoice ... kindly arrange to post the GR so we can proceed with billing.' It names an invoice and it is about billing, which is the invoice box. The case for GENERAL is that the action wanted is a goods receipt posting - an internal operational step - and that nothing about the invoice itself is in question. Contested because both readings are defensible and 23 emails turn on it."
+    },
+    "17c1e1f98c": {
+      "label": "GENERAL",
+      "confidence": 0.95,
+      "exemplar": "email_075",
+      "why": "'This is an automated notification ... has completed successfully. No action required. -- RPA Bot.' A robot reporting that nothing needs doing. Note the subject on this one reads 'Time Off Request'; the body is the message."
+    },
+    "aa8782eb1f": {
+      "label": "GENERAL",
+      "confidence": 0.95,
+      "exemplar": "email_011",
+      "why": "'The list of outstanding BL ... action the pending items.' A worklist, not a document check and not an invoice."
+    },
+    "f3b59b0c31": {
+      "label": "GENERAL",
+      "confidence": 1.0,
+      "exemplar": "email_012",
+      "why": "A daily berthing report. Operational traffic."
+    },
+    "92ad4c5be8": {
+      "label": "GENERAL",
+      "confidence": 1.0,
+      "exemplar": "email_037",
+      "why": "'Update summary for <vessel>. Loading completed, documents to follow.' Operational traffic."
+    },
+    "8a6e21c035": {
+      "label": "GENERAL",
+      "confidence": 1.0,
+      "exemplar": "email_053",
+      "why": "A new year greeting and office hours. Nothing to act on."
+    },
+    "90ab2516f9": {
+      "label": "GENERAL",
+      "confidence": 0.9,
+      "contested": true,
+      "exemplar": "email_003",
+      "why": "'Please assist to send the draft BL for <ref> for checking asap.' Nothing has arrived, so there is nothing to compare: the ask is to send, not to check. The case for BL_COMPARISON with a missing attachment is that a check is what the sender ultimately wants. Contested because 91 emails turn on it - the largest single call in the corpus. docs/assumptions.md argues the GENERAL reading from corpus evidence and tests/test_chasers.py pins that evidence; this label agrees with it, and is scored separately so that agreement cannot flatter the headline."
+    },
+    "894e3f1fef": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_072",
+      "why": "'Your email address has been selected in our monthly draw ... claim your $1,000 gift card.'"
+    },
+    "a519dd5626": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_026",
+      "why": "'LIMITED TIME OFFER! Get 90% off ... Buy now before this deal expires.'"
+    },
+    "7c92b898b4": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_116",
+      "why": "'Unpaid customs fee of $2.99. Confirm payment within 24 hours.' A parcel-fee phish."
+    },
+    "0e6bc622dc": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_215",
+      "why": "'You have won a brand new iPhone.'"
+    },
+    "8ec422a114": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_015",
+      "why": "Subject only: 'double your shipping revenue with this weird trick'."
+    },
+    "0b1f0a57de": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_382",
+      "why": "Subject only: 'email storage is full, verify account immediately'. A credential phish."
+    },
+    "814fb146d4": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_226",
+      "why": "Subject only: an offer on premium logistics software, this week only."
+    },
+    "a00f0c7ca0": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_417",
+      "why": "Subject only: 'kindly confirm your bank details'. A payment-redirection phish."
+    },
+    "b96929a6d4": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_363",
+      "why": "Subject only: 'investment opportunity, guaranteed returns'."
+    },
+    "8dcad7b5ca": {
+      "label": "SPAM",
+      "confidence": 1.0,
+      "exemplar": "email_390",
+      "why": "Subject only: 'update your account to avoid suspension'."
+    }
+  }
+}

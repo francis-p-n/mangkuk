@@ -132,7 +132,11 @@ class TestTheCorpusConventionForAttachmentLessMail:
         si = [e for e in corpus
               if classify(e["subject"], e["body"], e["from"].split("@")[-1],
                           e["attachments"]).category == "SI_REQUEST"]
-        assert len(si) == 141
+        # 141 until the subject stopped outranking the body. Nine of those
+        # were berthing reports and loading updates wearing a "Submit SI &
+        # AED" heading the generator had stapled on; they are GENERAL now,
+        # and eval/classification.py holds the whole corpus to that reading.
+        assert len(si) == 132
         assert all(e["attachments"] == [] for e in si)
 
 
