@@ -42,6 +42,39 @@ type Props = {
   empty: string;
 };
 
+/**
+ * Up and down move through the queue.
+ *
+ * A clerk works a list of 46 the way they work a mailbox: next, next, next.
+ * Making them travel to the mouse for each one is the difference between a
+ * tool and a web page, and the rows are buttons, so this is the behaviour a
+ * reader already expects from them.
+ */
+function useArrowKeys(
+  ids: string[],
+  openId: string | null,
+  open: (id: string) => void
+) {
+  return (event: React.KeyboardEvent<HTMLUListElement>) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    if (!ids.length) return;
+
+    const here = ids.indexOf(openId ?? "");
+    const next =
+      event.key === "ArrowDown"
+        ? Math.min(here + 1, ids.length - 1)
+        : Math.max(here - 1, 0);
+    if (next === here) return;
+
+    event.preventDefault();
+    open(ids[next]);
+    const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
+      "button.row"
+    );
+    buttons[next]?.focus();
+  };
+}
+
 export default function ShipmentList({
   runId,
   entries,
@@ -52,6 +85,11 @@ export default function ShipmentList({
 }: Props) {
   const { openId, shown, loading, failed, open } = useResult(runId, initial);
   const openEntry = entries.find((e) => e.row.email_id === openId);
+  const onKeyDown = useArrowKeys(
+    entries.map((e) => e.row.email_id),
+    openId,
+    open
+  );
 
   return (
     <main className="cols" id="results">
@@ -59,7 +97,7 @@ export default function ShipmentList({
         <h2 className="listtop" id="list-heading">
           {heading}
         </h2>
-        <ul>
+        <ul onKeyDown={onKeyDown}>
           {entries.length === 0 ? (
             <li className="allclear">{empty}</li>
           ) : (
