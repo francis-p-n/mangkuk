@@ -11,6 +11,8 @@ import random
 import time
 from typing import Protocol
 
+from .limiter import BudgetExhausted, Limiter
+
 DEFAULT_MODEL = os.environ.get("SDOC_MODEL", "claude-opus-5")
 BEDROCK_MODEL = os.environ.get("SDOC_BEDROCK_MODEL", "anthropic.claude-opus-5")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
@@ -20,6 +22,23 @@ AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 # free tier that is well past the per-minute allowance, so being rate limited
 # is the expected case, not the exceptional one.
 MAX_RETRIES = int(os.environ.get("SDOC_MAX_RETRIES", "5"))
+
+
+# One limiter for the whole run. A triage call and a resolver call are the
+# same request to the provider, so they must queue behind each other rather
+# than each keeping its own pace and doubling the rate between them.
+_LIMITER = Limiter()
+
+
+def limiter() -> Limiter:
+    return _LIMITER
+
+
+def reset_limiter(**kw) -> Limiter:
+    """Used by run.py to size the budget, and by tests to get a clean one."""
+    global _LIMITER
+    _LIMITER = Limiter(**kw)
+    return _LIMITER
 
 
 class RateLimited(RuntimeError):
@@ -61,6 +80,7 @@ class AnthropicClient:
         self.model = model
 
     def complete(self, system: str, user: str, max_tokens: int = 1024) -> str:
+        _LIMITER.acquire()
         try:
             response = self._client.messages.create(
                 model=self.model,
@@ -93,6 +113,7 @@ class BedrockClient:
         self.model = model
 
     def complete(self, system: str, user: str, max_tokens: int = 1024) -> str:
+        _LIMITER.acquire()
         try:
             response = self._client.messages.create(
                 model=self.model,
@@ -237,6 +258,10 @@ class GeminiClient:
 
         last: Exception | None = None
         for attempt in range(MAX_RETRIES + 1):
+            # Paced on every attempt, not just the first: a retry is another
+            # request against the same allowance, and retrying at full speed
+            # is what turned one refusal into six.
+            _LIMITER.acquire()
             request = urllib.request.Request(
                 self._url,
                 data=body,

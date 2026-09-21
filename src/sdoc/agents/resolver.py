@@ -9,7 +9,7 @@ so the email escalates exactly as if the agent had never run.
 from __future__ import annotations
 
 from ..fields import FIELDS, Extracted, FieldSet, is_placeholder, plausible
-from .clients import NullClient, RateLimited
+from .clients import BudgetExhausted, NullClient, RateLimited
 from .prompts import RESOLVER_SYSTEM
 from .replies import _parse_json_object, _squash
 from .stats import AgentStats
@@ -39,6 +39,15 @@ class FieldResolver:
         )
         try:
             raw = self.client.complete(RESOLVER_SYSTEM, user)
+        except BudgetExhausted as exc:
+            # Not a failure and not throttling: the run chose to stop asking.
+            # Counted with the rate limited, because the outcome is the same -
+            # no answer, so the email falls back to the rules - but the note
+            # says which it was, since only one of them is worth waiting out.
+            self.stats.rate_limited += 1
+            self.stats.notes.append(f"resolver: {exc}")
+            self.stats.say("budget spent")
+            return 0
         except RateLimited as exc:
             # The fields stay missing and the email escalates, which is the
             # same outcome as the agent being off - but it is silence, not a

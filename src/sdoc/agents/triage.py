@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ..classify import CATEGORIES
-from .clients import NullClient, RateLimited
+from .clients import BudgetExhausted, NullClient, RateLimited
 from .prompts import TRIAGE_SYSTEM
 from .replies import _parse_json_object
 from .stats import AgentStats
@@ -22,6 +22,15 @@ class TriageAgent:
         user = f"Subject: {subject}\n\nBody:\n{body[:2500]}"
         try:
             raw = self.client.complete(TRIAGE_SYSTEM, user, max_tokens=256)
+        except BudgetExhausted as exc:
+            # Not a failure and not throttling: the run chose to stop asking.
+            # Counted with the rate limited, because the outcome is the same -
+            # no answer, so the email falls back to the rules - but the note
+            # says which it was, since only one of them is worth waiting out.
+            self.stats.rate_limited += 1
+            self.stats.notes.append(f"triage: {exc}")
+            self.stats.say("budget spent")
+            return None
         except RateLimited as exc:
             # Never answered. The email falls back to the rule's own verdict,
             # exactly as if the agent were off, but the run has to know this

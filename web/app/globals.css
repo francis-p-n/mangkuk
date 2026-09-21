@@ -9,15 +9,22 @@
   --ink-soft: #57534b;
   --ink-faint: #6f6a60;   /* 4.76:1 on the sunk surface */
 
-  --brand: #a34513;       /* 5.44:1, and 6.14:1 under white */
-  --brand-wash: #fbefe8;
+  /* The wordmark's own ink, so the bar and the buttons under it are one
+     colour rather than two that happen to share a page. 8.13:1 on the card. */
+  --brand: #004aad;
+  --brand-wash: #eaf1fb;
 
   --fix: #a8271f;
   --fix-wash: #fceceb;
   --fix-rule: #e4b2ad;
-  --look: #1d5688;
-  --look-wash: #eaf1f7;
-  --look-rule: #b6cde1;
+  /* Violet, not blue. This says "a person has to look at this", and the
+     brand is blue now - a reader should not have to decide whether a blue
+     chip is a status or decoration. 8.05:1 on the card, and about 55 degrees
+     of hue from the brand, which is a difference you can see rather than one
+     that only measures. */
+  --look: #5b3e9b;
+  --look-wash: #f0ecf9;
+  --look-rule: #cabde8;
   --fine: #1c6740;
   --fine-wash: #eaf4ee;
 
@@ -54,15 +61,15 @@
     --ink-soft: #aaa49b;
     --ink-faint: #9a948b;  /* 5.01:1 on the sunk surface */
 
-    --brand: #e89056;
-    --brand-wash: #2d1c11;
+    --brand: #4c9aef;
+    --brand-wash: #10233a;
 
     --fix: #f0918a;
     --fix-wash: #341d1b;
     --fix-rule: #6b3834;
-    --look: #84b5e1;
-    --look-wash: #152634;
-    --look-rule: #2e4d68;
+    --look: #b79bea;
+    --look-wash: #211a33;
+    --look-rule: #453a63;
     --fine: #86cda1;
     --fine-wash: #15301e;
 
@@ -86,15 +93,15 @@
     --ink-soft: #aaa49b;
     --ink-faint: #9a948b;  /* 5.01:1 on the sunk surface */
 
-    --brand: #e89056;
-    --brand-wash: #2d1c11;
+    --brand: #4c9aef;
+    --brand-wash: #10233a;
 
     --fix: #f0918a;
     --fix-wash: #341d1b;
     --fix-rule: #6b3834;
-    --look: #84b5e1;
-    --look-wash: #152634;
-    --look-rule: #2e4d68;
+    --look: #b79bea;
+    --look-wash: #211a33;
+    --look-rule: #453a63;
     --fine: #86cda1;
     --fine-wash: #15301e;
 
