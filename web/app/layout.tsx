@@ -17,7 +17,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Applies the saved theme before the first paint. Without it a reader
+          who chose light gets a dark flash on every navigation, which is the
+          exact complaint a theme switch is meant to remove.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('sdoc-theme');" +
+              "if(t==='light'||t==='dark')" +
+              "document.documentElement.setAttribute('data-theme',t);}catch(e){}",
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

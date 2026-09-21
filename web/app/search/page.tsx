@@ -3,6 +3,7 @@ import { currentRun, search, one, NotConfigured, PAGE } from "@/lib/supabase";
 import ShipmentRow, { issue } from "@/components/ShipmentRow";
 import Detail from "@/components/Detail";
 import Setup from "@/components/Setup";
+import TopBar from "@/components/TopBar";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,9 @@ export default async function Search({
   };
 
   return (
-    <div className="wrap">
+    <>
+      <TopBar here="search" />
+      <div className="wrap">
       <a className="skip" href="#results">
         Skip to the results
       </a>
@@ -96,9 +99,6 @@ export default async function Search({
                 : `${rows.length} of ${run.totals.emails} match.`}
           </p>
         </div>
-        <nav className="whoami" aria-label="Sections">
-          <Link href={"/" as never}>Today</Link>
-        </nav>
       </header>
 
       <form className="jump" action="/search" role="search">
@@ -196,6 +196,7 @@ export default async function Search({
           ? issue(selected, labels)
           : "Nothing here is sent automatically. You send every email yourself."}
       </p>
-    </div>
+      </div>
+    </>
   );
 }

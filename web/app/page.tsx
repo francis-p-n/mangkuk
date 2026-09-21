@@ -2,6 +2,7 @@ import Link from "next/link";
 import { currentRun, byStatus, NotConfigured } from "@/lib/supabase";
 import ShipmentRow from "@/components/ShipmentRow";
 import Setup from "@/components/Setup";
+import TopBar from "@/components/TopBar";
 
 // Verdicts change when the pipeline reloads the table, not when this builds,
 // so the page is rendered per request. A reload after a load shows the new
@@ -65,7 +66,9 @@ export default async function Today() {
   ];
 
   return (
-    <div className="wrap">
+    <>
+      <TopBar here="today" />
+      <div className="wrap">
       <a className="skip" href="#work">
         Skip to what needs doing
       </a>
@@ -186,6 +189,7 @@ export default async function Today() {
       <p className="foot">
         Nothing here is sent automatically. You send every email yourself.
       </p>
-    </div>
+      </div>
+    </>
   );
 }
