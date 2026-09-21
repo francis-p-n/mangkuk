@@ -3,6 +3,26 @@
 No ground truth ships with the bundle, so correctness is shown six ways.
 Every number here is reproducible from the commands in the README.
 
+## The claims
+
+These are the numbers this document backs up, and the numbers
+`python eval/rubric.py` holds the project to. Change one here and the check
+starts enforcing the new value - they cannot drift apart, because there is
+only one place they are written.
+
+| Claim | Value |
+|---|---|
+| tests passing | 347 |
+| defects injected | 602 |
+| defects caught | 602 |
+| desk cases | 31 |
+| desk cases missed | 0 |
+| desk cases false alarms | 0 |
+| edge block split | 5/5/5/5 |
+| classifier residue | 59 |
+| corpus emails | 520 |
+| agent guardrail tests | 62 |
+
 ## Testing and validation
 
 There is no ground truth in the bundle, so accuracy is established six ways.

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Check the project against the rubric the README states.
+"""Check the project against the claims it makes.
 
     python eval/rubric.py              # one pass
     python eval/rubric.py --loop       # re-run until every criterion passes
     python eval/rubric.py --only 1 2   # just those criteria
 
-README section 1 ("Why you can believe it") is the rubric. The numbers it
-quotes are the acceptance thresholds, so this reads them out of the README
-rather than repeating them here: edit the claim in the README and this starts
-checking the new number. A rubric kept in two places drifts, and the copy that
-drifts is always the one nobody runs.
+The claims table in docs/validation.md is the rubric. The numbers it
+states are the acceptance thresholds, so this reads them from there rather
+than repeating them here: edit a claim and this starts checking the new
+value. A rubric kept in two places drifts, and the copy that drifts is
+always the one nobody runs.
 
 Exit status is 0 only when every selected criterion passes.
 """
@@ -24,41 +24,53 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-README = ROOT / "README.md"
+CLAIMS = ROOT / "docs" / "validation.md"
 PY = sys.executable
 TIMEOUT = 600          # a hung eval must not hang the loop
 
 
 class RubricError(RuntimeError):
-    """The README does not state the number this criterion is defined by."""
+    """The claims table does not state the number this criterion needs."""
 
 
 # ---------------------------------------------------------------- reading it
 
-def readme_text() -> str:
-    """The README as one line.
+def readme_text() -> dict[str, str]:
+    """The claims table in docs/validation.md, as {claim: value}.
 
-    Markdown wraps prose at whatever column the author was using, so a claim
-    can have a newline anywhere inside it - "39 tests drive\\nthe resolver".
-    Collapsing whitespace first means rewrapping the README never silently
-    stops a criterion from being found.
+    A table rather than prose. The first version regexed sentences out of the
+    README, so rewrapping a paragraph could stop a criterion being found - a
+    silent pass, which is the worst way for a check to fail. It also meant the
+    rubric died when the README became a submission front page; the evidence
+    moved to docs/validation.md and this followed it.
     """
     try:
-        raw = README.read_text(encoding="utf-8")
+        raw = CLAIMS.read_text(encoding="utf-8")
     except OSError as exc:
-        raise RubricError(f"cannot read {README.name}: {exc}") from exc
-    return re.sub(r"\s+", " ", raw)
+        raise RubricError(f"cannot read {CLAIMS.name}: {exc}") from exc
 
-
-def claim(pattern: str, text: str, what: str) -> tuple[int, ...]:
-    """Pull the number(s) the README commits to, or say which claim is gone."""
-    m = re.search(pattern, text, re.I)
-    if not m:
+    rows: dict[str, str] = {}
+    for line in raw.splitlines():
+        m = re.match(r"\|\s*([A-Za-z][A-Za-z \-]+?)\s*\|\s*([\d/,]+)\s*\|$",
+                     line.strip())
+        if m:
+            rows[m.group(1).strip().lower()] = m.group(2).strip()
+    if not rows:
         raise RubricError(
-            f"README no longer states {what} - the rubric moved, so this "
-            f"criterion cannot be checked against it"
+            f"{CLAIMS.name} has no claims table - there is nothing to check "
+            f"the project against"
         )
-    return tuple(int(g.replace(",", "")) for g in m.groups())
+    return rows
+
+
+def claim(key: str, rows: dict[str, str], what: str) -> tuple[int, ...]:
+    """Pull the number(s) a claim commits to, or say which claim is gone."""
+    if key not in rows:
+        raise RubricError(
+            f"the claims table no longer states {what} (row {key!r}), so this "
+            f"criterion cannot be checked"
+        )
+    return tuple(int(part.replace(",", "")) for part in rows[key].split("/"))
 
 
 # ---------------------------------------------------------------- running it
@@ -74,7 +86,7 @@ class Outcome:
 class Criterion:
     num: int
     name: str
-    quote: str                       # what the README claims
+    quote: str                       # what the claims table states
     run: object                      # () -> Outcome
     last: Outcome | None = field(default=None, repr=False)
 
@@ -114,12 +126,11 @@ def broken(code: int, out: str) -> Outcome | None:
 
 # ---------------------------------------------------------------- criteria
 
-def build(text: str) -> list[Criterion]:
+def build(text: dict[str, str]) -> list[Criterion]:
     crits: list[Criterion] = []
 
     # 1 - test suite
-    (want_tests,) = claim(r"Test suite:\s*\**\s*([\d,]+)\s+passing", text,
-                          "a test count")
+    (want_tests,) = claim("tests passing", text, "a test count")
 
     def c1() -> Outcome:
         code, out = shell("-m", "pytest", "tests", "-q")
@@ -133,16 +144,15 @@ def build(text: str) -> list[Criterion]:
         if failed:
             return Outcome(False, f"{got} passed, {failed} FAILED", out.strip()[-600:])
         if got < want_tests:
-            return Outcome(False, f"{got} passed, README states {want_tests}")
-        drift = f"  (README states {want_tests})" if got != want_tests else ""
+            return Outcome(False, f"{got} passed, the claims table states {want_tests}")
+        drift = f"  (the claims table states {want_tests})" if got != want_tests else ""
         return Outcome(code == 0, f"{got} passed{drift}")
 
     crits.append(Criterion(1, "Test suite", f"{want_tests} passing", c1))
 
     # 2 - defect injection
-    want_inj, want_caught = claim(
-        r"Defect injection:\s*\**\s*([\d,]+)\s+injected,\s*([\d,]+)\s+caught",
-        text, "an injected/caught pair")
+    (want_inj,) = claim("defects injected", text, "an injected count")
+    (want_caught,) = claim("defects caught", text, "a caught count")
 
     def c2() -> Outcome:
         code, out = shell("eval/mutation.py")
@@ -157,7 +167,7 @@ def build(text: str) -> list[Criterion]:
             return Outcome(False, "could not read totals", out.strip()[-400:])
         bad = []
         if caught < want_caught:
-            bad.append(f"caught {caught}/{inj}, README states {want_caught}")
+            bad.append(f"caught {caught}/{inj}, the claims table states {want_caught}")
         if ctrl:
             bad.append(f"{ctrl} control failure(s)")
         if clean is not None and clean < caught:
@@ -169,9 +179,10 @@ def build(text: str) -> list[Criterion]:
                            f"{want_inj} injected, {want_caught} caught", c2))
 
     # 3 - clerk's-eye cases
-    want_cases, want_missed, want_alarms = claim(
-        r"eye cases:\s*\**\s*(\d+)\s+variations,\s*(\d+)\s+missed,\s*(\d+)\s+false alarms",
-        text, "variations/missed/false-alarm counts")
+    (want_cases,) = claim("desk cases", text, "a desk-case count")
+    (want_missed,) = claim("desk cases missed", text, "a missed count")
+    (want_alarms,) = claim("desk cases false alarms", text,
+                           "a false-alarm count")
 
     def c3() -> Outcome:
         code, out = shell("eval/desk_cases.py")
@@ -185,11 +196,11 @@ def build(text: str) -> list[Criterion]:
             return Outcome(False, "could not read summary", out.strip()[-400:])
         bad = []
         if missed > want_missed:
-            bad.append(f"{missed} missed (README: {want_missed})")
+            bad.append(f"{missed} missed (claimed: {want_missed})")
         if alarms > want_alarms:
-            bad.append(f"{alarms} false alarms (README: {want_alarms})")
+            bad.append(f"{alarms} false alarms (claimed: {want_alarms})")
         if cases < want_cases:
-            bad.append(f"only {cases} cases (README: {want_cases})")
+            bad.append(f"only {cases} cases (claimed: {want_cases})")
         return Outcome(not bad and code == 0,
                        f"{cases} cases, {missed} missed, {alarms} false alarms",
                        "; ".join(bad))
@@ -199,8 +210,7 @@ def build(text: str) -> list[Criterion]:
                            f"{want_alarms} false alarms", c3))
 
     # 4 - the constructed edge-case block
-    split = claim(r"edge-case block resolves\s*(\d+)/(\d+)/(\d+)/(\d+)", text,
-                  "the 5/5/5/5 split")
+    split = claim("edge block split", text, "the edge-block split")
 
     def c4() -> Outcome:
         code, out = shell("-m", "pytest", "tests/test_pipeline.py", "-q",
@@ -221,9 +231,8 @@ def build(text: str) -> list[Criterion]:
                            f"resolves {'/'.join(map(str, split))}", c4))
 
     # 5 - no-ground-truth audit
-    want_res, want_total = claim(
-        r"(\d+)\s+of\s+(\d+)\s+emails\s*\([\d.]+%\)\s*fall through", text,
-        "the residue share")
+    (want_res,) = claim("classifier residue", text, "the residue count")
+    (want_total,) = claim("corpus emails", text, "the corpus size")
 
     def c5() -> Outcome:
         code, out = shell("eval/audit.py")
@@ -237,9 +246,9 @@ def build(text: str) -> list[Criterion]:
         res, total = int(m.group(1)), int(m.group(2))
         if total != want_total:
             return Outcome(False,
-                           f"corpus is {total} emails, README says {want_total}")
+                           f"corpus is {total} emails, the claims table says {want_total}")
         if res > want_res:
-            return Outcome(False, f"residue grew to {res} (README: {want_res}) - "
+            return Outcome(False, f"residue grew to {res} (claimed: {want_res}) - "
                                   f"rules now decide less than claimed")
         return Outcome(code == 0, f"{res}/{total} residue "
                                   f"({100 * (total - res) / total:.1f}% by rules)")
@@ -251,7 +260,7 @@ def build(text: str) -> list[Criterion]:
     # Whitespace-tolerant: the README is hard-wrapped, so the phrase this
     # reads may have a newline anywhere in it. A rubric that fails because a
     # paragraph reflowed teaches people to stop running the rubric.
-    (want_agent,) = claim(r"(\d+)\s+tests\s+drive\s+the\s+resolver", text,
+    (want_agent,) = claim("agent guardrail tests", text,
                           "an agent-test count")
 
     def c6() -> Outcome:
@@ -267,8 +276,8 @@ def build(text: str) -> list[Criterion]:
         if failed:
             return Outcome(False, f"{got} passed, {failed} FAILED", out.strip()[-600:])
         if got < want_agent:
-            return Outcome(False, f"{got} guardrail tests, README states {want_agent}")
-        drift = f"  (README states {want_agent})" if got != want_agent else ""
+            return Outcome(False, f"{got} guardrail tests, the claims table states {want_agent}")
+        drift = f"  (the claims table states {want_agent})" if got != want_agent else ""
         return Outcome(code == 0, f"{got} guardrail tests pass{drift}")
 
     crits.append(Criterion(6, "Agent guardrails", f"{want_agent} tests", c6))
@@ -285,7 +294,7 @@ def report(crits: list[Criterion], it: int, elapsed: float) -> bool:
         o = c.last
         mark = "PASS" if o and o.ok else "FAIL"
         print(f"  [{mark}] {c.num}. {c.name:<22} {o.detail if o else '-'}")
-        print(f"         README: {c.quote}")
+        print(f"         claims: {c.quote}")
         if o and not o.ok and o.error:
             for line in o.error.strip().splitlines()[-6:]:
                 print(f"         | {line}")
