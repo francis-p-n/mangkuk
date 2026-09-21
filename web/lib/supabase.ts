@@ -5,22 +5,45 @@ import type { Result } from "./format";
 // (see supabase/migrations/0001_results.sql), so it is safe in the browser -
 // but every query here runs on the server anyway, which keeps the round trip
 // to one and the payload to the rows a page actually shows.
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+//
+// Read through a computed key, at call time, on purpose. Next inlines every
+// literal `process.env.NEXT_PUBLIC_X` it can see into the bundle when the
+// build runs, so a variable added afterwards is baked in as undefined and
+// setting it changes nothing until the next build - which looks exactly like
+// setting it wrong. A computed lookup cannot be inlined, so the value is read
+// from the running server and a redeploy is enough.
+function env(name: string): string | undefined {
+  const raw = process.env[name];
+  const v = raw?.trim();
+  return v ? v : undefined;
+}
+
+/** Unprefixed first: those are never inlined, so they always mean runtime. */
+function settings() {
+  return {
+    url: env("SUPABASE_URL") ?? env("NEXT_PUBLIC_SUPABASE_URL"),
+    anon: env("SUPABASE_ANON_KEY") ?? env("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  };
+}
 
 export class NotConfigured extends Error {
-  constructor() {
-    super(
-      "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are not set - " +
-        "copy .env.example and fill them in, then load a run with " +
-        "tools/supabase_load.py"
-    );
+  /** Which ones are missing, because "not configured" does not say. */
+  readonly missing: string[];
+
+  constructor(missing: string[]) {
+    super(`not set: ${missing.join(", ")}`);
     this.name = "NotConfigured";
+    this.missing = missing;
   }
 }
 
 export function db() {
-  if (!url || !anon) throw new NotConfigured();
+  const { url, anon } = settings();
+  const missing = [
+    ...(url ? [] : ["NEXT_PUBLIC_SUPABASE_URL"]),
+    ...(anon ? [] : ["NEXT_PUBLIC_SUPABASE_ANON_KEY"]),
+  ];
+  if (!url || !anon) throw new NotConfigured(missing);
   return createClient(url, anon, { auth: { persistSession: false } });
 }
 

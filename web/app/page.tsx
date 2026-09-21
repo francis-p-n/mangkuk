@@ -40,12 +40,12 @@ export default async function Today() {
       return (
         <Setup
           title="Supabase is not configured"
-          detail="The project URL and anon key are not set."
+          detail={`Not set: ${e.missing.join(" and ")}.`}
           local={["cp ../.env.example .env.local", "npm run dev"]}
           deployed={[
-            "Settings -> Environment Variables -> NEXT_PUBLIC_SUPABASE_URL",
-            "Settings -> Environment Variables -> NEXT_PUBLIC_SUPABASE_ANON_KEY",
-            "Set both for Production, then Redeploy",
+            "Settings -> Environment Variables: add both, scope Production",
+            "Deployments -> Redeploy, with 'Use existing Build Cache' OFF",
+            "Names must match exactly - a trailing space counts",
           ]}
         />
       );
