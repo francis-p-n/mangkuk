@@ -3,6 +3,7 @@ import type { Result } from "@/lib/format";
 import type { ListRow } from "@/lib/supabase";
 import type { Labels } from "@/lib/supabase";
 import { who, route } from "@/lib/format";
+import StatusIcon from "./StatusIcon";
 
 /**
  * What is wrong with this shipment, in a clerk's words.
@@ -61,10 +62,12 @@ export default function ShipmentRow({ s, labels, href, current }: Props) {
   // does not yet know.
   const badge = s.severity ? (
     <span className={`vis-tag band ${s.severity}`}>
+      <StatusIcon status={s.status} size={12} />
       {labels.band?.[s.severity] ?? s.severity}
     </span>
   ) : (
     <span className={`vis-tag ${tone}`}>
+      <StatusIcon status={s.status} size={12} />
       {labels.status?.[s.status] ?? s.status}
     </span>
   );

@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Result, Comparison } from "@/lib/format";
 import type { Labels } from "@/lib/supabase";
 import { who, cargo } from "@/lib/format";
+import StatusIcon from "./StatusIcon";
+import { Check as CheckIcon, Copy, Mail, TriangleAlert, X } from "lucide-react";
 
 /**
  * The draft the clerk sends to the carrier.
@@ -48,12 +50,23 @@ Best regards,`;
 function Row({ c, labels }: { c: Comparison; labels: Labels }) {
   const bad = c.agree === false;
   const unknown = c.agree === null;
+  // Shape, colour and words for each of the three outcomes. A comparison
+  // table read at speed is exactly where a second channel earns its place.
   const mark = bad ? (
-    <span className="mark-bad">Does not match</span>
+    <span className="mark-bad">
+      <X size={13} strokeWidth={2.5} aria-hidden="true" />
+      Does not match
+    </span>
   ) : unknown ? (
-    <span className="dash">Could not read</span>
+    <span className="dash">
+      <TriangleAlert size={13} strokeWidth={2.25} aria-hidden="true" />
+      Could not read
+    </span>
   ) : (
-    <span className="yes">Matches</span>
+    <span className="yes">
+      <CheckIcon size={13} strokeWidth={2.5} aria-hidden="true" />
+      Matches
+    </span>
   );
 
   return (
@@ -110,6 +123,7 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
 
       <p className="verdict">
         <span className={`tag ${tone}`}>
+          <StatusIcon status={s.status} size={13} />
           {labels.status?.[s.status] ?? s.status}
         </span>
         <span>{verdict}</span>
@@ -220,9 +234,15 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
               className="btn go"
               onClick={() => setDraft(true)}
             >
+              <Mail size={15} strokeWidth={2.25} aria-hidden="true" />
               {draft ? "Rewrite the email" : "Write the email to the carrier"}
             </button>
             <button type="button" className="btn" onClick={copy}>
+              {copied ? (
+                <CheckIcon size={15} strokeWidth={2.5} aria-hidden="true" />
+              ) : (
+                <Copy size={15} strokeWidth={2.25} aria-hidden="true" />
+              )}
               {copied ?? "Copy the details"}
             </button>
           </div>

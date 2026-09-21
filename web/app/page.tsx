@@ -3,6 +3,7 @@ import { currentRun, byStatus, NotConfigured } from "@/lib/supabase";
 import ShipmentRow from "@/components/ShipmentRow";
 import Setup from "@/components/Setup";
 import TopBar from "@/components/TopBar";
+import { Search as SearchIcon } from "lucide-react";
 
 // Verdicts change when the pipeline reloads the table, not when this builds,
 // so the page is rendered per request. A reload after a load shows the new
@@ -116,6 +117,7 @@ export default async function Today() {
           placeholder="Find a customer, OC number, port or vessel"
         />
         <button className="btn" type="submit">
+          <SearchIcon size={15} strokeWidth={2.25} aria-hidden="true" />
           Search all <span className="num">{t.comparisons}</span>
         </button>
       </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 type Choice = "light" | "dark" | "system";
 const KEY = "sdoc-theme";
@@ -45,10 +46,10 @@ export default function ThemeToggle() {
     }
   }, [choice, ready]);
 
-  const options: { value: Choice; label: string; icon: string }[] = [
-    { value: "light", label: "Light", icon: "☀" },
-    { value: "dark", label: "Dark", icon: "☾" },
-    { value: "system", label: "System", icon: "◐" },
+  const options = [
+    { value: "light" as const, label: "Light", Icon: Sun },
+    { value: "dark" as const, label: "Dark", Icon: Moon },
+    { value: "system" as const, label: "System", Icon: Monitor },
   ];
 
   return (
@@ -61,7 +62,7 @@ export default function ThemeToggle() {
           aria-pressed={ready && choice === o.value}
           title={`${o.label} theme`}
         >
-          <span aria-hidden="true">{o.icon}</span>
+          <o.Icon size={14} strokeWidth={2.25} aria-hidden="true" />
           <span className="sr-only">{o.label} theme</span>
         </button>
       ))}
