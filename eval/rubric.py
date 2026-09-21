@@ -281,6 +281,50 @@ def build(text: dict[str, str]) -> list[Criterion]:
         return Outcome(code == 0, f"{got} guardrail tests pass{drift}")
 
     crits.append(Criterion(6, "Agent guardrails", f"{want_agent} tests", c6))
+
+    # 7 - paper the bundle never contained
+    (want_cases,) = claim("unseen cases", text, "an unseen-case count")
+    (want_read,) = claim("unseen fields read", text, "an unseen coverage count")
+    (want_invented,) = claim("unseen defects invented", text, "an invented count")
+    (want_waved,) = claim("unseen defects waved through", text, "a waved-through count")
+
+    def c7() -> Outcome:
+        code, out = shell("eval/unseen.py")
+        stop = broken(code, out)
+        if stop:
+            return stop
+        read = number(out, r"vocabulary read\s*:\s*(\d+)/")
+        total = number(out, r"vocabulary read\s*:\s*\d+/(\d+)")
+        cases = number(out, r"across (\d+) unfamiliar cases")
+        invented = number(out, r"defects invented\s*:\s*(\d+)")
+        waved = number(out, r"defects waved through\s*:\s*(\d+)")
+        if None in (read, cases, invented, waved):
+            return Outcome(False, "could not read the summary", out.strip()[-400:])
+
+        bad = []
+        # Judging a field wrongly is the failure. Reading less of an unfamiliar
+        # document is a coverage limit, and only a drop below what is claimed
+        # counts against it - improving coverage must never fail the check.
+        if invented:
+            bad.append(f"{invented} defect(s) invented")
+        if waved:
+            bad.append(f"{waved} defect(s) waved through")
+        if cases < want_cases:
+            bad.append(f"only {cases} cases (claimed {want_cases})")
+        if read < want_read:
+            bad.append(f"read {read} fields, claimed {want_read}")
+
+        drift = f"  (claimed {want_read})" if read != want_read else ""
+        return Outcome(
+            not bad and code == 0,
+            f"{read}/{total} fields read across {cases} cases, "
+            f"{invented} invented, {waved} waved{drift}",
+            "; ".join(bad),
+        )
+
+    crits.append(Criterion(7, "Unseen documents",
+                           f"{want_cases} cases, {want_read} fields read, "
+                           f"{want_invented} invented, {want_waved} waved", c7))
     return crits
 
 

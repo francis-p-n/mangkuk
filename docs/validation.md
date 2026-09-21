@@ -1,6 +1,6 @@
 # How the accuracy was established
 
-No ground truth ships with the bundle, so correctness is shown six ways.
+No ground truth ships with the bundle, so correctness is shown seven ways.
 Every number here is reproducible from the commands in the README.
 
 ## The claims
@@ -12,7 +12,7 @@ only one place they are written.
 
 | Claim | Value |
 |---|---|
-| tests passing | 359 |
+| tests passing | 394 |
 | defects injected | 602 |
 | defects caught | 602 |
 | desk cases | 31 |
@@ -22,15 +22,19 @@ only one place they are written.
 | classifier residue | 59 |
 | corpus emails | 520 |
 | agent guardrail tests | 62 |
+| unseen cases | 5 |
+| unseen fields read | 30 |
+| unseen defects invented | 0 |
+| unseen defects waved through | 0 |
 
 ## Testing and validation
 
-There is no ground truth in the bundle, so accuracy is established six ways.
+There is no ground truth in the bundle, so accuracy is established seven ways.
 
-### 1. Test suite — 359 tests, all passing
+### 1. Test suite — 394 tests, all passing
 
 ```
-359 passed in 17.4s
+394 passed in 14.9s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -218,3 +222,35 @@ to those, and a declared-unreadable document is a correct answer where a
 hallucinated one is not. The largest classification call — 91 emails chasing
 a draft BL — is resolved in [docs/assumptions.md](assumptions.md) and pinned
 in `tests/test_chasers.py`; `--chase-as-comparison` still flips them.
+
+### 7. Documents the bundle never contained — 5 cases, 0 judged wrongly
+
+Every other check here measures the checker against the supplied corpus, which
+cannot tell a system that has learned the shipping framework from one that has
+learned this bundle's habits. `eval/unseen.py` measures the difference: five
+shipments written to share nothing with the pack — Brazilian coffee to Hamburg,
+Korean steel to Houston, Dutch bulbs to Santos, Indian textiles to Felixstowe,
+Chilean wine to Yokohama — with unfamiliar companies, lanes, commodities,
+numeric conventions and label wording.
+
+Two numbers, and they are not the same number.
+
+**Read** is vocabulary: 30 of 35 fields. The five misses are all one document,
+a shipping instruction labelled `Receiver`, `From Port`, `To Port`, `Total
+Gross` and `Units` — ordinary shipping English the alias table has not got.
+That costs a comparison and escalates the email.
+
+**Wrong** is judgement: a defect invented, or a real one waved through. Zero of
+each. The planted defects in fields it could read — a one-tonne weight error
+and a discharge port whose city is right and whose UN/LOCODE is wrong — were
+both caught, and the deliberate rewrites were not flagged: `B.V.` against `BV`,
+`41.250,00 KG` against `41,250 KG`, `40'HC` against `40'HIGH CUBE`.
+
+The document it could not read returned `NEEDS_REVIEW` with no defects at all.
+That is the behaviour worth having: a system fitted to the corpus would have
+invented comparisons out of half-parsed text, and this one escalated.
+
+What this does *not* show is that the vocabulary is complete. It is sized to
+the corpus, and unfamiliar wording escalates rather than being guessed at —
+which is also what the LLM resolver exists to close.
+

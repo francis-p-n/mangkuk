@@ -33,6 +33,7 @@ Reads `data/`, writes `out/submission.json` (the scored file) and
 | `python eval/mutation.py` | inject defects, measure detection |
 | `python eval/desk_cases.py` | real-world document quirks |
 | `python eval/audit.py` | audit a run with no ground truth |
+| `python eval/unseen.py` | check it on documents the bundle never contained |
 | `python eval/score.py --truth gt.json` | score against the organizers' truth |
 | `python run.py --source http://host:8080` | run against their server |
 | `python run.py --agent gemini` | turn the LLM recovery stage on |
