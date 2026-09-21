@@ -100,7 +100,8 @@ export async function currentRun(): Promise<Run | null> {
 // Everything, for the one shipment being read in detail.
 const COLUMNS =
   "email_id, category, rule, status, review_reason, has_defect, defect_fields, " +
-  "subject, sender, oc_number, booking_ref, note, severity, severity_field, " +
+  "subject, sender, body, oc_number, booking_ref, note, severity, " +
+  "severity_field, " +
   "severity_reason, documents, comparisons, shipment";
 
 // What a row in a list actually draws, and nothing else.
@@ -155,16 +156,33 @@ export async function byStatus(
   return worstFirst((data ?? []) as unknown as ListRow[]);
 }
 
+/** Postgres: the column named in the query does not exist on the table. */
+const UNDEFINED_COLUMN = "42703";
+
 export async function one(
   runId: string,
   emailId: string
 ): Promise<Result | null> {
-  const { data, error } = await db()
-    .from("results")
-    .select(COLUMNS)
-    .eq("run_id", runId)
-    .eq("email_id", emailId)
-    .maybeSingle();
+  const read = (columns: string) =>
+    db()
+      .from("results")
+      .select(columns)
+      .eq("run_id", runId)
+      .eq("email_id", emailId)
+      .maybeSingle();
+
+  let { data, error } = await read(COLUMNS);
+
+  // `body` arrived in migration 0002, and code reaches a deployment before a
+  // migration does. Asking for a column the table has not got fails the whole
+  // select, which would blank the detail panel over a field that is merely
+  // nice to have - so on that one error, ask again without it and show the
+  // shipment. The email section is absent until the migration lands, and
+  // nothing else notices.
+  if (error?.code === UNDEFINED_COLUMN && COLUMNS.includes("body")) {
+    ({ data, error } = await read(COLUMNS.replace("body, ", "")));
+  }
+
   if (error) throw new Error(`reading ${emailId}: ${error.message}`);
   return (data as unknown as Result) ?? null;
 }

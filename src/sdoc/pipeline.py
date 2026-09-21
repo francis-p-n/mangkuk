@@ -33,6 +33,10 @@ class EmailResult:
     # context for the UI, ignored by the scorer
     subject: str = ""
     sender: str = ""
+    # The message itself, so a clerk can read what was actually asked before
+    # acting on a verdict about it. Carried for the UI only - the scorer never
+    # sees it, and to_submission() does not include it.
+    body: str = ""
     oc_number: str | None = None
     booking_ref: str | None = None
     note: str = ""
@@ -117,6 +121,7 @@ def process_email(
         rule=cls.rule,
         subject=email.subject,
         sender=email.sender,
+        body=email.body,
         oc_number=refs.oc,
         booking_ref=refs.booking,
     )

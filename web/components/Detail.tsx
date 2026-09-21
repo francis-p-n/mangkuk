@@ -5,6 +5,7 @@ import type { Result, Comparison } from "@/lib/format";
 import type { Labels } from "@/lib/supabase";
 import { who, cargo } from "@/lib/format";
 import StatusIcon from "./StatusIcon";
+import EmailPanel from "./EmailPanel";
 import { Check as CheckIcon, Copy, Mail, TriangleAlert, X } from "lucide-react";
 
 /**
@@ -269,6 +270,8 @@ export default function Detail({ s, labels }: { s: Result; labels: Labels }) {
           )}
         </>
       )}
+
+      <EmailPanel s={s} />
     </div>
   );
 }

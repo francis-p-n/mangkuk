@@ -591,3 +591,49 @@ tr.bad th[scope="row"] {
 
 /* A button that is only an icon still needs a comfortable target. */
 .theme button { min-width: 30px; }
+/* --- the email the verdict is about ------------------------------------ */
+.mail { margin-top: 26px; border-top: 1px solid var(--rule); padding-top: 4px; }
+.mail-head {
+  width: 100%; display: flex; align-items: flex-start; gap: 11px;
+  padding: 13px 15px; text-align: left; cursor: pointer;
+  background: var(--sunk); border: 1px solid var(--rule);
+  border-radius: var(--r); color: inherit; font: inherit;
+}
+.mail-head:hover { background: var(--card); border-color: var(--rule-firm); }
+.mail-head:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.mail-icon { color: var(--ink-faint); flex: none; margin-top: 2px; }
+.mail-meta { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.mail-from {
+  font-size: 13px; color: var(--ink-faint);
+  font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mail-subject {
+  font-size: 14.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mail-preview {
+  font-size: 13.5px; color: var(--ink-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mail-chev { color: var(--ink-faint); flex: none; margin-top: 2px; transition: transform .15s ease; }
+.mail-chev.is-open { transform: rotate(180deg); }
+
+.mail-body {
+  border: 1px solid var(--rule); border-top: 0;
+  border-radius: 0 0 var(--r) var(--r);
+  background: var(--card); padding: 16px 18px;
+}
+.mail-body pre {
+  margin: 0; font-family: var(--mono); font-size: 13.5px; line-height: 1.7;
+  white-space: pre-wrap; word-break: break-word; color: var(--ink-soft);
+}
+.mail-files {
+  list-style: none; margin: 16px 0 0; padding: 13px 0 0;
+  border-top: 1px solid var(--rule); display: grid; gap: 8px;
+}
+.mail-files li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.mail-files svg { color: var(--ink-faint); flex: none; }
+.mail-file-name { font-family: var(--mono); color: var(--ink); }
+.mail-file-role { color: var(--ink-faint); }
+
+@media (prefers-reduced-motion: reduce) { .mail-chev { transition: none; } }

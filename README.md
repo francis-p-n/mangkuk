@@ -3,7 +3,7 @@
 [![Hackathon](https://img.shields.io/badge/Hackathon-Averis%202026-blue)](#)
 [![Team](https://img.shields.io/badge/Team-mangkuk-orange)](#)
 [![Stack](https://img.shields.io/badge/Stack-Python%20%7C%20Next.js%20%7C%20Supabase-green)](#)
-[![Tests](https://img.shields.io/badge/Tests-347%20passing-brightgreen)](docs/validation.md)
+[![Tests](https://img.shields.io/badge/Tests-359%20passing-brightgreen)](docs/validation.md)
 
 > **Team mangkuk — team submission** 🏅
 
@@ -11,7 +11,7 @@
 > comparing every draft bill of lading against the instruction that ordered it,
 > ranking what is wrong by what it would cost, and writing the correction email.
 
-### 🌐 [Live site](https://mangkuk-git-main-francis-p-ns-projects.vercel.app) &nbsp;·&nbsp; 🎬 [Video](#) &nbsp;·&nbsp; 📊 [Slide deck](#)
+### 🌐 [Live site](https://mangkuk-livid.vercel.app) &nbsp;·&nbsp; 🎬 [Video](#) &nbsp;·&nbsp; 📊 [Slide deck](#)
 
 ## 👥 Team
 
@@ -19,7 +19,10 @@
 
 | Name | Role | Responsibilities |
 |------|------|-----------------|
-| **Francis** | — | — |
+| **Francis** | Full-stack Developer | The checking pipeline, the database, the web app, deployment |
+| **Matthew** | Business Research | Market research, the business case, the desk's real workflow |
+| **Shen** | Testing | Test coverage, validation, checking the results hold up |
+| **Ashley** | Video | The demo video and how the product is presented |
 
 ---
 
@@ -47,7 +50,8 @@ error would actually cost, with the correction email already written.
 | **Severity Ranking** | Each defect banded by consequence, so the worst is worked first |
 | **Escalation, Not Guessing** | Unreadable or blank fields go to a human with the reason stated |
 | **Draft Correction Email** | Written and ready, quoting both documents — the clerk sends it themselves |
-| **Learned Corrections** | The desk overrules the machine, and the correction is recorded and reusable |
+| **The Email Itself** | The original message and its attachments, one click below the verdict |
+| **Learned Corrections** | A desk's corrections are recorded as overrides and replayed on later runs |
 
 ---
 
@@ -98,7 +102,7 @@ throttled run still produces an identical valid submission.
 | **Spreadsheets** | openpyxl | Reading `.xlsx` shipping instructions |
 | **Word Documents** | python-docx | Reading `.docx` bills of lading |
 | **PDFs** | pypdf | Text extraction from `.pdf` attachments |
-| **Testing** | pytest | 347 tests covering every rule and escalation path |
+| **Testing** | pytest | 359 tests covering every rule, escalation and guardrail |
 | **Frontend Framework** | Next.js 15 + React 19 | Server-rendered dashboard |
 | **Language** | TypeScript | Type safety across the web app |
 | **Database** | Supabase (PostgreSQL) | One row per email, JSONB for nested detail |
@@ -132,8 +136,8 @@ npm run dev --prefix web
 # Runs at http://localhost:3000
 ```
 
-Apply `supabase/migrations/0001_results.sql` in the Supabase SQL editor first,
-or there are no tables to write to.
+Apply the files in `supabase/migrations/` in the Supabase SQL editor first,
+in order, or there are no tables to write to.
 
 ### Environment Variables
 
@@ -152,7 +156,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 ### Checking the claims
 ```bash
-python -m pytest tests -q          # 347 tests
+python -m pytest tests -q          # 359 tests
 python eval/rubric.py              # every claim in docs/validation.md, verified
 ```
 

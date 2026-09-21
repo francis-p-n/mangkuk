@@ -58,6 +58,7 @@ export type Result = {
   defect_fields: string[];
   subject: string | null;
   sender: string | null;
+  body: string | null;
   oc_number: string | null;
   booking_ref: string | null;
   note: string | null;

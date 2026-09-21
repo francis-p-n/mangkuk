@@ -12,7 +12,7 @@ only one place they are written.
 
 | Claim | Value |
 |---|---|
-| tests passing | 347 |
+| tests passing | 359 |
 | defects injected | 602 |
 | defects caught | 602 |
 | desk cases | 31 |
@@ -27,10 +27,10 @@ only one place they are written.
 
 There is no ground truth in the bundle, so accuracy is established six ways.
 
-### 1. Test suite — 347 tests, all passing
+### 1. Test suite — 359 tests, all passing
 
 ```
-347 passed in 17.67s
+359 passed in 17.4s
 ```
 
 Unit tests cover every normalization rule, every label alias including the

@@ -107,6 +107,7 @@ def row_of(rec: dict, run_id: str) -> dict:
         "oc_number": s("oc_number"),
         "booking_ref": s("booking_ref"),
         "note": s("note"),
+        "body": s("body"),
         "severity": rec.get("severity"),
         "severity_field": rec.get("severity_field"),
         "severity_reason": s("severity_reason"),
