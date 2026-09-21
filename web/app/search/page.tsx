@@ -3,6 +3,8 @@ import { currentRun, search, one, NotConfigured, PAGE } from "@/lib/supabase";
 import ShipmentRow, { issue } from "@/components/ShipmentRow";
 import Detail from "@/components/Detail";
 import Setup from "@/components/Setup";
+import StatusIcon from "@/components/StatusIcon";
+import { LayoutList, Search as SearchIcon } from "lucide-react";
 import TopBar from "@/components/TopBar";
 
 export const dynamic = "force-dynamic";
@@ -114,6 +116,7 @@ export default async function Search({
         />
         {status !== "ALL" && <input type="hidden" name="status" value={status} />}
         <button className="btn" type="submit">
+          <SearchIcon size={15} strokeWidth={2.25} aria-hidden="true" />
           Search
         </button>
       </form>
@@ -135,7 +138,11 @@ export default async function Search({
               href={keep({ status: f.value === "ALL" ? "" : f.value, id: "" })}
               aria-current={status === f.value ? "true" : undefined}
             >
-              <span className="dot" aria-hidden="true" />
+              {f.value === "ALL" ? (
+                <LayoutList size={14} strokeWidth={2.25} aria-hidden="true" />
+              ) : (
+                <StatusIcon status={f.value} />
+              )}
               {f.label}
               <span className="n">{n}</span>
             </Link>

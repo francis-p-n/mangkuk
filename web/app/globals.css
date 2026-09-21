@@ -614,3 +614,26 @@ tr.bad th[scope="row"] {
 :root[data-theme="light"] .brand-logo-dark { display: none; }
 
 @media (max-width: 640px) { .brand-logo { height: 22px; } }
+
+/* Icons.
+   An inline SVG sits on the text baseline by default, which drops it a few
+   pixels below the cap height and makes every labelled control look faintly
+   broken. Centring the flex line fixes it once, everywhere. */
+.btn, .vis-tag, .tag, .filters a,
+.verdict-cell .yes, .verdict-cell .mark-bad, .verdict-cell .dash {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn svg, .vis-tag svg, .tag svg, .filters a svg,
+.verdict-cell svg { flex: none; }
+
+/* The glyph is the quieter half of the pair - the word is what is read, and
+   an icon at full strength beside small text shouts over it. */
+.vis-tag svg, .tag svg { opacity: .9; }
+
+/* The dot the filter used before its icons. */
+.filters .dot { display: none; }
+
+/* A button that is only an icon still needs a comfortable target. */
+.theme button { min-width: 30px; }
