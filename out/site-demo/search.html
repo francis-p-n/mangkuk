@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search shipments — Document checks</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23a34513'/><path d='M9 16.5l5 5 9-11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+
+<div class="wrap">
+  <header class="titlerow">
+    <div>
+      <h1>Search shipments</h1>
+      <p class="date">Every draft checked, however you want to slice it.</p>
+    </div>
+    <nav class="whoami" id="whoami" aria-label="Account and sections"></nav>
+  </header>
+
+  <form class="tools" id="filters" role="search" aria-labelledby="filters-heading">
+    <h2 class="sr-only" id="filters-heading">Filter shipments</h2>
+
+    <label class="sr-only" for="q">Search text</label>
+    <input type="search" id="q" name="q"
+           placeholder="Customer, country, OC number, port, vessel or cargo">
+
+    <fieldset class="pills">
+      <legend class="sr-only">Show only</legend>
+      <button type="button" class="pill" data-filter="all" aria-pressed="true">Everything</button>
+      <button type="button" class="pill" data-filter="MISMATCH" aria-pressed="false">
+        <i class="dot fix" aria-hidden="true"></i>Needs fixing</button>
+      <button type="button" class="pill" data-filter="NEEDS_REVIEW" aria-pressed="false">
+        <i class="dot look" aria-hidden="true"></i>Needs you to look</button>
+      <button type="button" class="pill" data-filter="OK" aria-pressed="false">
+        <i class="dot fine" aria-hidden="true"></i>Fine</button>
+    </fieldset>
+
+    <fieldset class="tools narrow">
+      <legend class="sr-only">Narrow by customer or port</legend>
+      <label class="picker">Customer
+        <select data-key="consignee"></select></label>
+      <label class="picker">Their country
+        <select data-key="consignee_country"></select></label>
+      <label class="picker">Shipping from
+        <select data-key="loading_port"></select></label>
+      <label class="picker">Going to
+        <select data-key="discharge_port"></select></label>
+      <button type="button" class="btn plain" id="clearf" hidden>Clear filters</button>
+    </fieldset>
+  </form>
+
+  <p class="sr-only" id="announce" role="status" aria-live="polite"></p>
+
+  <main class="cols" id="results">
+    <section class="card" aria-labelledby="list-heading">
+      <h2 class="listtop" id="list-heading"></h2>
+      <div class="list" id="list"></div>
+    </section>
+    <section class="card" aria-labelledby="shipment-name" aria-live="polite">
+      <div class="detail" id="detail"></div>
+    </section>
+  </main>
+</div>
+
+<script src="lib/format.js"></script>
+<script src="lib/session.js"></script>
+<script src="lib/learned.js"></script>
+<script src="lib/views.js"></script>
+<script src="data.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (!window.SDOC.session.require()) return;
+
+  const D = window.SDOC.data, V = window.SDOC.views, F = window.SDOC.fmt;
+  window.SDOC.session.mountHeader(document.getElementById("whoami"), { here: "search.html" });
+
+  const PICKERS = [
+    { key: "consignee", all: "Every customer" },
+    { key: "consignee_country", all: "Everywhere" },
+    { key: "loading_port", all: "Every export port" },
+    { key: "discharge_port", all: "Every destination" },
+  ];
+
+  // The home page links in with a shipment, a status or a query already
+  // chosen, so the two pages join up instead of starting over.
+  const params = new URLSearchParams(location.search);
+  // A status from the URL has to be one we actually have a pill for, or the
+  // page opens with nothing selected, nothing listed, and no way to tell why.
+  const KNOWN = new Set(["all", "MISMATCH", "NEEDS_REVIEW", "OK"]);
+  const asked = params.get("status");
+  const state = {
+    filter: KNOWN.has(asked) ? asked : "all",
+    q: (params.get("q") || "").trim().toLowerCase(),
+    picks: {},
+    selected: params.get("id") || null,
+  };
+  document.getElementById("q").value = params.get("q") || "";
+  document.querySelectorAll(".pill").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.filter === state.filter)));
+
+  function matching({ ignore } = {}) {
+    return D.shipments.filter(s => {
+      if (state.filter !== "all" && s.status !== state.filter) return false;
+      for (const { key } of PICKERS) {
+        if (key === ignore) continue;
+        const want = state.picks[key];
+        if (want && s.shipment[key] !== want) return false;
+      }
+      if (state.q) {
+        const hay = [s.shipment.consignee, s.shipment.consignee_country,
+          s.shipment.consignee_address, s.oc_number, s.booking_ref, s.subject,
+          s.shipment.discharge_port, s.shipment.loading_port,
+          s.shipment.vessel, s.shipment.commodity].join(" ").toLowerCase();
+        if (!hay.includes(state.q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // Each picker offers only what the other choices still allow, so no
+  // combination can come back empty.
+  function refreshPickers() {
+    let picked = false;
+    for (const { key, all } of PICKERS) {
+      const counts = new Map();
+      for (const s of matching({ ignore: key })) {
+        const v = s.shipment[key];
+        if (v) counts.set(v, (counts.get(v) || 0) + 1);
+      }
+      const chosen = state.picks[key] || "";
+      if (chosen) picked = true;
+      if (chosen && !counts.has(chosen)) counts.set(chosen, 0);
+      const label = v => key === "consignee" ? F.title(v) : v;
+      const el = document.querySelector(`[data-key="${key}"]`);
+      el.innerHTML = `<option value="">${all}</option>` +
+        [...counts.entries()].sort((a, b) => label(a[0]).localeCompare(label(b[0])))
+          .map(([v, n]) => `<option value="${F.esc(v)}"${v === chosen ? " selected" : ""}>${
+            F.esc(label(v))}${n ? ` (${n})` : ""}</option>`).join("");
+      el.value = chosen;
+    }
+    document.getElementById("clearf").hidden =
+      !picked && !state.q && state.filter === "all";
+  }
+
+  function render() {
+    const rows = matching();
+    refreshPickers();
+
+    const heading = rows.length === D.shipments.length
+      ? `${rows.length} shipments`
+      : `${rows.length} of ${D.shipments.length} shipments`;
+    document.getElementById("list-heading").textContent = heading;
+    document.getElementById("announce").textContent = `${heading} found.`;
+
+    const list = document.getElementById("list");
+    if (!rows.length) {
+      list.innerHTML = '<p class="none">No shipments match your search or filters.</p>';
+      // The panel is labelled by this heading, so it has to exist even when
+      // there is nothing to show.
+      document.getElementById("detail").innerHTML =
+        '<h2 id="shipment-name" class="sr-only">No shipment selected</h2>' +
+        '<p class="none">Clear a filter to see shipments again.</p>';
+      return;
+    }
+    if (!state.selected || !rows.some(r => r.email_id === state.selected)) {
+      state.selected = rows[0].email_id;
+    }
+    list.innerHTML = rows.map(s =>
+      V.row(s, { current: s.email_id === state.selected })).join("");
+    list.querySelectorAll(".row").forEach(el =>
+      el.addEventListener("click", () => { state.selected = el.dataset.id; render(); }));
+
+    const chosen = rows.find(r => r.email_id === state.selected);
+    const panel = document.getElementById("detail");
+    panel.innerHTML = V.detail(chosen);
+    V.bindDetail(panel, chosen);
+  }
+
+  document.querySelectorAll(".pill").forEach(b => b.addEventListener("click", () => {
+    state.filter = b.dataset.filter;
+    document.querySelectorAll(".pill").forEach(x =>
+      x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+  PICKERS.forEach(({ key }) =>
+    document.querySelector(`[data-key="${key}"]`).addEventListener("change", e => {
+      state.picks[key] = e.target.value; render();
+    }));
+  document.getElementById("q").addEventListener("input", e => {
+    state.q = e.target.value.trim().toLowerCase(); render();
+  });
+  document.getElementById("filters").addEventListener("submit", e => e.preventDefault());
+  document.getElementById("clearf").addEventListener("click", () => {
+    state.picks = {}; state.q = ""; state.filter = "all";
+    document.getElementById("q").value = "";
+    document.querySelectorAll(".pill").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.filter === "all")));
+    render();
+  });
+  document.getElementById("list").addEventListener("keydown", e => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const rows = [...document.querySelectorAll(".row")];
+    const i = rows.findIndex(r => r.dataset.id === state.selected);
+    const next = rows[Math.min(rows.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))];
+    if (next) { state.selected = next.dataset.id; render();
+      const again = [...document.querySelectorAll(".row")].find(r => r.dataset.id === state.selected);
+      if (again) again.focus(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

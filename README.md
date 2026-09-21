@@ -230,7 +230,13 @@ entrypoints it looks for (`app.py`, `index.py`, `server.py`, `main.py`,
 `ui/build.py` writes a `vercel.json` beside the pages saying there is nothing
 to build, which is what makes deploying the folder work.
 
-**The scrambled demo.** Nothing identifying leaves the machine:
+**Deploy on push.** `out/site-demo` is committed, and the Vercel project sets
+**Root Directory** to `out/site-demo`. That is what makes the git integration
+work: the root `requirements.txt` falls outside the scope, so Vercel never
+reads the project as a Python app, and `out/site-demo/vercel.json` tells it
+there is nothing to build. Rebuild and commit the folder to publish a change.
+
+**The scrambled demo, by hand.** Nothing identifying leaves the machine:
 
 ```bash
 python run.py && python tools/demo_data.py
@@ -239,9 +245,13 @@ vercel deploy --prod out/site-demo
 ```
 
 **The real bundle.** Every consignee name, street address, booking reference
-and OC number, inlined into `data.js` and served world-readable at `/data.js` -
+and OC number, inlined into `data.js` and served world-readable at `/data.js`,
 ahead of the sign-in page, which is a prototype that accepts any credentials
-anyway. `./deploy.sh` asks before doing this; `vercel deploy` does not:
+anyway. `./deploy.sh` asks before doing this; `vercel deploy` does not.
+
+`out/site` stays gitignored, so this route is never the one that deploys on
+push: a public repo keeps whatever it is given, and a deployment can at least
+be deleted afterwards.
 
 ```bash
 python run.py && python ui/build.py
