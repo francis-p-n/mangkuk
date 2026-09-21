@@ -1,149 +1,115 @@
 """Emails are vertices, references are edges, a shipment is a component.
 
-The corpus cannot test any of this. Every reference in it belongs to exactly
-one email - 388 OC numbers across 388 emails, 222 bookings across 222 - so all
-520 components have size one and the grouping is never asked to do anything.
-The logic still has to be right for the day real threaded mail arrives, which
-is what these are for.
+These run against the grouping that ships - `web/lib/graph.ts`, through
+`tools/group_cli.mjs` - rather than against a copy of it. The copy this file
+used to carry was the whole problem: deleting bridging from the real
+`componentsOf` left every test here green and the typecheck clean, and the
+copy had never learned that a B/L number is an edge either.
 
-This mirrors web/lib/shipments.ts. The rule is the same in both: a shared
-reference groups, resemblance never does.
+The rules themselves are unit-tested next to the code, in
+`web/lib/graph.test.ts` (`npm test --prefix web`). What is asserted here is
+the part that needs the pipeline: that the real corpus files the way it is
+claimed to, and that the constructed thread folds into one shipment with the
+right verdict on it.
 """
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
+
 import pytest
 
-from conftest import DATA_DIR
+from conftest import DATA_DIR, ROOT
 from sdoc.mailsource import BundleMailSource
 from sdoc.pipeline import run
 
+CLI = ROOT / "tools" / "group_cli.mjs"
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("node") is None,
+    reason="node runs the grouping; install Node 22.6+ to check it",
+)
+
+
+def rows_of(results) -> list[dict]:
+    """A result as the web app's list query sees it."""
+    return [
+        {
+            "email_id": r.email_id,
+            "category": r.category,
+            "status": r.status,
+            "severity": r.severity,
+            "oc_number": r.oc_number,
+            "booking_ref": r.booking_ref,
+            "shipment": {"bl_number": (r.shipment or {}).get("bl_number")},
+        }
+        for r in results
+    ]
+
+
+def group(rows: list[dict]) -> list[dict]:
+    """Run the shipped grouping over these rows and return the files."""
+    out = subprocess.run(
+        ["node", str(CLI)],
+        input=json.dumps(rows),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        cwd=ROOT,
+        timeout=120,
+    )
+    if out.returncode != 0:
+        pytest.fail(f"the grouping would not run:\n{out.stderr.strip()[-800:]}")
+    return json.loads(out.stdout)["files"]
+
 
 @pytest.fixture(scope="module")
-def results():
-    return {r.email_id: r for r in run(BundleMailSource(DATA_DIR))}
+def bundle():
+    return list(run(BundleMailSource(DATA_DIR)))
 
 
-def references_of(email: dict) -> list[str]:
-    return [v.strip() for v in (email.get("oc_number"), email.get("booking_ref"))
-            if isinstance(v, str) and v.strip()]
-
-
-def components_of(emails: list[dict]) -> dict[str, str]:
-    """Union-find over emails and the references they carry."""
-    parent: dict[str, str] = {}
-
-    def find(x: str) -> str:
-        parent.setdefault(x, x)
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    def union(a: str, b: str) -> None:
-        ra, rb = find(a), find(b)
-        if ra != rb:
-            parent[ra] = rb
-
-    for e in emails:
-        v = f"email:{e['email_id']}"
-        find(v)
-        for ref in references_of(e):
-            union(v, f"ref:{ref}")
-
-    return {e["email_id"]: find(f"email:{e['email_id']}") for e in emails}
-
-
-def folders(emails: list[dict]) -> list[set[str]]:
-    comp = components_of(emails)
-    out: dict[str, set[str]] = {}
-    for e in emails:
-        out.setdefault(comp[e["email_id"]], set()).add(e["email_id"])
-    return sorted(out.values(), key=lambda s: sorted(s)[0])
-
-
-def email(eid, oc=None, booking=None):
-    return {"email_id": eid, "oc_number": oc, "booking_ref": booking}
-
-
-class TestIsolatedVertices:
-    def test_an_email_with_no_reference_is_its_own_file(self):
-        got = folders([email("email_001"), email("email_002")])
-        assert got == [{"email_001"}, {"email_002"}]
-
-    def test_unreferenced_emails_are_never_filed_together(self):
-        """Otherwise 123 unrelated notices become one folder."""
-        got = folders([email(f"email_{i:03}") for i in range(1, 6)])
-        assert all(len(f) == 1 for f in got)
-        assert len(got) == 5
-
-
-class TestSharedReferences:
-    def test_a_shared_oc_number_groups(self):
-        got = folders([email("a", oc="OC-1"), email("b", oc="OC-1")])
-        assert got == [{"a", "b"}]
-
-    def test_a_shared_booking_groups(self):
-        got = folders([email("a", booking="BK-9"), email("b", booking="BK-9")])
-        assert got == [{"a", "b"}]
-
-    def test_different_references_stay_apart(self):
-        got = folders([email("a", oc="OC-1"), email("b", oc="OC-2")])
-        assert got == [{"a"}, {"b"}]
-
-
-class TestBridges:
-    """The case single-key grouping gets wrong.
-
-    213 of 520 emails in the corpus carry both references, so a bridge is
-    structurally present even though nothing in the corpus repeats a
-    reference for one to span.
-    """
-
-    def test_an_email_carrying_both_joins_two_references(self):
-        got = folders([
-            email("a", oc="OC-1"),                  # names only the OC
-            email("b", oc="OC-1", booking="BK-9"),  # the bridge
-            email("c", booking="BK-9"),             # names only the booking
-        ])
-        assert got == [{"a", "b", "c"}], "a and c connect only through b"
-
-    def test_without_the_bridge_they_are_separate(self):
-        got = folders([email("a", oc="OC-1"), email("c", booking="BK-9")])
-        assert got == [{"a"}, {"c"}]
-
-    def test_a_chain_of_bridges_forms_one_file(self):
-        got = folders([
-            email("a", oc="OC-1"),
-            email("b", oc="OC-1", booking="BK-1"),
-            email("c", booking="BK-1", oc="OC-2"),
-            email("d", oc="OC-2"),
-        ])
-        assert got == [{"a", "b", "c", "d"}]
-
-
-class TestResemblanceIsNotAnEdge:
-    def test_same_customer_and_lane_do_not_group(self):
-        """email_468 and email_502: both Roxcel to Ashdod, one 40'HC, and
-        different shipments. Only the references decide."""
-        a = email("email_468", oc="5ALT-45057")
-        b = email("email_502", oc="5RSG-63369")
-        a["shipment"] = b["shipment"] = {
-            "consignee": "ROXCEL TRADING GMBH",
-            "port_of_loading": "SINGAPORE (SGSIN)",
-            "port_of_discharge": "ASHDOD, ISRAEL (ILASH)",
-            "container_count": "1 X 40'HC",
-        }
-        assert folders([a, b]) == [{"email_468"}, {"email_502"}]
+@pytest.fixture(scope="module")
+def thread():
+    src = DATA_DIR / "thread-demo"
+    if not (src / "inbox").exists():
+        pytest.skip("run tools/thread_demo.py to build the fixture")
+    return list(run(BundleMailSource(src)))
 
 
 class TestTheCorpusItself:
-    def test_every_component_in_the_bundle_has_one_email(self, results):
-        """If this ever fails, the corpus grew a thread and the UI should be
-        showing it - which is worth knowing loudly rather than silently."""
-        emails = [{"email_id": r.email_id, "oc_number": r.oc_number,
-                   "booking_ref": r.booking_ref} for r in results.values()]
-        sizes = {len(f) for f in folders(emails)}
-        assert sizes == {1}, f"a component grew: sizes {sorted(sizes)}"
+    """The corpus cannot exercise the grouping, and that is worth pinning.
+
+    Every reference in it belongs to exactly one email - 388 OC numbers across
+    388 emails, 222 bookings across 222 - so all 520 components have size one.
+    """
+
+    def test_every_file_in_the_bundle_holds_one_email(self, bundle):
+        files = group(rows_of(bundle))
+        sizes = {len(f["emails"]) for f in files}
+        assert sizes == {1}, f"a file grew: sizes {sorted(sizes)}"
+        assert len(files) == len(bundle)
+
+    def test_no_email_is_lost_or_duplicated_by_the_grouping(self, bundle):
+        filed = [eid for f in group(rows_of(bundle)) for eid in f["emails"]]
+        assert sorted(filed) == sorted(r.email_id for r in bundle)
+
+    def test_only_document_checks_carry_a_verdict(self, bundle):
+        """391 emails are stored as OK because nothing was asked of them."""
+        by_id = {r.email_id: r for r in bundle}
+        for f in group(rows_of(bundle)):
+            head = by_id[f["emails"][0]]
+            if head.category == "BL_COMPARISON":
+                assert f["checked"] and f["status"] == head.status
+            else:
+                assert not f["checked"] and f["status"] is None
+
+    def test_resemblance_does_not_file_two_shipments_together(self, bundle):
+        """email_468 and email_502: both Roxcel to Ashdod, one 40'HC."""
+        files = group(rows_of(bundle))
+        homes = [f for f in files
+                 if {"email_468", "email_502"} & set(f["emails"])]
+        assert len(homes) == 2
 
 
 class TestTheConstructedThread:
@@ -155,55 +121,63 @@ class TestTheConstructedThread:
     right.
     """
 
-    @pytest.fixture(scope="class")
-    def thread(self):
-        from sdoc.mailsource import BundleMailSource
-        src = DATA_DIR / "thread-demo"
-        if not (src / "inbox").exists():
-            pytest.skip("run tools/thread_demo.py to build the fixture")
-        return {r.email_id: r for r in run(BundleMailSource(src))}
-
     def test_the_whole_correspondence_is_one_shipment(self, thread):
-        emails = [{"email_id": r.email_id, "oc_number": r.oc_number,
-                   "booking_ref": r.booking_ref} for r in thread.values()]
-        assert folders(emails) == [set(thread)]
-        assert len(thread) == 12
+        files = group(rows_of(thread))
+        assert len(files) == 1
+        assert len(files[0]["emails"]) == 12 == len(thread)
+
+    def test_it_files_under_the_reference_a_desk_would_quote(self, thread):
+        assert group(rows_of(thread))[0]["reference"] == "7QTX-40118"
 
     def test_mail_that_is_not_a_document_check_files_here_too(self, thread):
         """A booking confirmation, an invoice and an arrival notice belong in
         the shipment's file as much as the drafts do."""
-        kinds = {r.category for r in thread.values()}
+        kinds = {r.category for r in thread}
         assert {"BL_COMPARISON", "GENERAL", "INVOICE_QUERY"} <= kinds
 
     def test_the_first_draft_is_wrong_in_two_places(self, thread):
-        first = thread["email_9003"]
+        first = {r.email_id: r for r in thread}["email_9003"]
         assert first.status == "MISMATCH"
         assert sorted(first.defect_fields) == ["consignee", "gross_weight_kg"]
 
     def test_the_first_correction_fixes_only_one_of_them(self, thread):
         """The shape that matters. A demo where the first correction lands
         says nothing about what a desk spends its week on."""
-        second = thread["email_9005"]
+        second = {r.email_id: r for r in thread}["email_9005"]
         assert second.status == "MISMATCH"
         assert second.defect_fields == ["gross_weight_kg"]
 
     def test_the_second_correction_closes_it(self, thread):
-        assert thread["email_9008"].status == "OK"
-        assert thread["email_9008"].defect_fields == []
+        assert {r.email_id: r for r in thread}["email_9008"].status == "OK"
 
-    def test_the_shipment_therefore_ends_resolved(self, thread):
-        order = sorted(thread.values(), key=lambda r: r.email_id)
-        comparisons = [r for r in order if r.category == "BL_COMPARISON"]
-        assert comparisons[0].status != "OK"
-        assert comparisons[-1].status == "OK"
+    def test_the_file_therefore_reads_as_corrected(self, thread):
+        """The whole point of filing the thread together. This is what was
+        broken: the fold dropped clean checks before choosing the deciding
+        email, so the file could only ever end on a failure."""
+        f = group(rows_of(thread))[0]
+        assert f["status"] == "OK"
+        assert f["resolved"] is True
+        assert f["decisive"] == "email_9008"
+
+    def test_the_arrival_notice_does_not_decide_the_file(self, thread):
+        """It is the last email in the thread and it was never compared."""
+        assert group(rows_of(thread))[0]["decisive"] != "email_9012"
 
     def test_the_release_notice_files_on_its_booking_alone(self, thread):
-        last = thread["email_9010"]
+        last = {r.email_id: r for r in thread}["email_9010"]
         assert last.oc_number is None
         assert last.booking_ref == "MEDUTH550281"
 
     def test_the_bl_number_is_read_off_the_draft(self, thread):
         """Printed on the bill of lading and never on the instruction, so it
         is only found by reading both documents."""
-        assert thread["email_9003"].shipment.get("bl_number") == "MEDUTH550281X"
-        assert thread["email_9008"].shipment.get("bl_number") == "MEDUTH550281X"
+        by_id = {r.email_id: r for r in thread}
+        assert by_id["email_9003"].shipment.get("bl_number") == "MEDUTH550281X"
+        assert by_id["email_9008"].shipment.get("bl_number") == "MEDUTH550281X"
+
+
+class TestTheGraphIsTheOneThatShips:
+    def test_the_cli_and_the_unit_tests_read_the_same_module(self):
+        """A guard against this file quietly growing its own copy again."""
+        source = CLI.read_text(encoding="utf-8")
+        assert 'from "../web/lib/graph.ts"' in source

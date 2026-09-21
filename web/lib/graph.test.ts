@@ -20,6 +20,7 @@ import assert from "node:assert/strict";
 import {
   componentsOf,
   decisiveEmail,
+  fileKey,
   foldFolder,
   groupRows,
   isComparison,
@@ -217,6 +218,24 @@ test("a file is named by its reference, and by its email when it has none", () =
     "B",
     "C",
   ]);
+});
+
+test("a file is named by the reference a desk would quote, not by arrival", () => {
+  // The demo thread opens with a booking confirmation carrying no OC number,
+  // and the other eleven emails all quote 7QTX-40118.
+  const thread = [
+    email("e1", { booking: "MEDUTH550281" }),
+    email("e2", { oc: "7QTX-40118", booking: "MEDUTH550281" }),
+    email("e3", { oc: "7QTX-40118" }),
+  ];
+  assert.equal(fileKey(thread), "7QTX-40118");
+  assert.equal(foldFolder(thread.map((e) => ({ ...e, status: "OK" as Status, severity: null }))).key, "7QTX-40118");
+});
+
+test("a file with no OC anywhere falls back to the booking, then the B/L", () => {
+  assert.equal(fileKey([email("e1"), email("e2", { booking: "BK-1" })]), "BK-1");
+  assert.equal(fileKey([email("e1"), email("e2", { bl: "BL-7" })]), "BL-7");
+  assert.equal(fileKey([email("e1"), email("e2")]), "e1");
 });
 
 // -------------------------------------------------------------- the verdict

@@ -12,7 +12,7 @@ only one place they are written.
 
 | Claim | Value |
 |---|---|
-| tests passing | 435 |
+| tests passing | 432 |
 | defects injected | 602 |
 | defects caught | 602 |
 | desk cases | 31 |
@@ -26,15 +26,16 @@ only one place they are written.
 | unseen fields read | 30 |
 | unseen defects invented | 0 |
 | unseen defects waved through | 0 |
+| grouping tests | 29 |
 
 ## Testing and validation
 
 There is no ground truth in the bundle, so accuracy is established seven ways.
 
-### 1. Test suite — 435 tests, all passing
+### 1. Test suite — 432 tests, all passing
 
 ```
-435 passed in 16.2s
+432 passed in 16.3s
 ```
 
 Unit tests cover every normalization rule, every label alias including the
@@ -223,7 +224,29 @@ hallucinated one is not. The largest classification call — 91 emails chasing
 a draft BL — is resolved in [docs/assumptions.md](assumptions.md) and pinned
 in `tests/test_chasers.py`; `--chase-as-comparison` still flips them.
 
-### 7. Documents the bundle never contained — 5 cases, 0 judged wrongly
+### 7. Grouping — tested against the code that ships
+
+`tests/test_grouping.py` used to carry its own copy of the union-find and
+assert against that. The shipped grouping therefore had no coverage at all:
+deleting bridging from `web/lib/graph.ts` - the one case its own comments
+call out as the thing single-key grouping gets wrong - left all of the Python
+tests green and `tsc --noEmit` clean. The copy had also drifted, having never
+learned that a B/L number is an edge.
+
+The rules now live in `web/lib/graph.ts`, which imports nothing, and 29 tests
+run against it directly (`npm test --prefix web`, no framework - Node reads
+the TypeScript). That same deletion now fails five of them. The Python suite
+reaches the same module through `tools/group_cli.mjs`, so the corpus-level
+claims - 520 files of one email each, nothing lost or duplicated, two
+lookalike shipments kept apart - are made about the code that runs.
+
+What this bought beyond coverage: the constructed thread folds to `OK` and
+reads as corrected, which it could not do before. The fold dropped clean
+checks before choosing the deciding email, so a file could only ever end on a
+failure, and `resolved` was unreachable for every folder shape the pipeline
+can emit.
+
+### 8. Documents the bundle never contained — 5 cases, 0 judged wrongly
 
 Every other check here measures the checker against the supplied corpus, which
 cannot tell a system that has learned the shipping framework from one that has

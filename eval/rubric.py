@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -325,6 +326,37 @@ def build(text: dict[str, str]) -> list[Criterion]:
     crits.append(Criterion(7, "Unseen documents",
                            f"{want_cases} cases, {want_read} fields read, "
                            f"{want_invented} invented, {want_waved} waved", c7))
+
+    # 8 - the grouping, tested against the code that ships
+    (want_group,) = claim("grouping tests", text, "a grouping-test count")
+
+    def c8() -> Outcome:
+        npm = shutil.which("npm")
+        if npm is None:
+            return Outcome(False, "npm not found - the grouping is untested")
+        try:
+            p = subprocess.run([npm, "test", "--prefix", "web"], cwd=ROOT,
+                               timeout=TIMEOUT, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", shell=False)
+        except subprocess.TimeoutExpired:
+            return Outcome(False, f"TIMED OUT after {TIMEOUT}s")
+        except OSError as exc:
+            return Outcome(False, "COULD NOT START", str(exc)[:200])
+        out = (p.stdout or "") + (p.stderr or "")
+        got = number(out, r"^\D*pass (\d+)")
+        failed = number(out, r"^\D*fail (\d+)") or 0
+        if got is None:
+            return Outcome(False, "no result line", out.strip()[-400:])
+        if failed:
+            return Outcome(False, f"{got} passed, {failed} FAILED",
+                           out.strip()[-800:])
+        if got < want_group:
+            return Outcome(False, f"{got} grouping tests, the claims table "
+                                  f"states {want_group}")
+        drift = f"  (the claims table states {want_group})" if got != want_group else ""
+        return Outcome(p.returncode == 0, f"{got} grouping tests pass{drift}")
+
+    crits.append(Criterion(8, "Grouping", f"{want_group} tests", c8))
     return crits
 
 
@@ -357,6 +389,14 @@ def signature(crits: list[Criterion]) -> tuple:
 
 
 def main() -> int:
+    # Node's test reporter writes tick and info glyphs, and a Windows console
+    # is cp1252. Printing a failure's output must not itself fail.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, OSError):
+            pass
+
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)

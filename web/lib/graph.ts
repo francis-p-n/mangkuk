@@ -83,9 +83,36 @@ export function referenceOf(r: GraphRow): string | null {
   return referencesOf(r)[0] ?? null;
 }
 
-/** What a component is called: its reference, or the lone email's id. */
+/** What one email is filed under: its reference, or its own id. */
 export function shipmentKey(r: GraphRow): string {
   return referencesOf(r)[0] ?? r.email_id;
+}
+
+/**
+ * What a whole file is called.
+ *
+ * The OC number wherever it appears in the file, then the booking, then the
+ * B/L, and only then the lone email's id. Reading the first email's
+ * references instead made the name depend on what happened to arrive first:
+ * the demo thread opens with a booking confirmation that carries no OC, so a
+ * twelve-email file whose other eleven messages all quote 7QTX-40118 was
+ * filing itself under MEDUTH550281. The name a desk quotes should not change
+ * because the carrier got in first.
+ */
+export function fileKey(emails: GraphRow[]): string {
+  const first = (pick: (r: GraphRow) => string | null | undefined) => {
+    for (const e of emails) {
+      const v = pick(e)?.trim();
+      if (v) return v;
+    }
+    return null;
+  };
+  return (
+    first((e) => e.oc_number) ??
+    first((e) => e.booking_ref) ??
+    first((e) => e.shipment?.bl_number) ??
+    emails[0].email_id
+  );
 }
 
 /** Email ids sort chronologically in this corpus, which is what order means. */
@@ -186,9 +213,10 @@ export function foldFolder<T extends FoldRow>(emails: T[]): Folder<T> {
   const decisive = comparisons[comparisons.length - 1] ?? null;
   const everFailed = comparisons.some((e) => e.status === "MISMATCH");
 
+  const key = fileKey(sorted);
   return {
-    key: shipmentKey(sorted[0]),
-    reference: referenceOf(sorted[0]),
+    key,
+    reference: key === sorted[0].email_id && !referenceOf(sorted[0]) ? null : key,
     emails: sorted,
     checked: comparisons.length > 0,
     status: decisive ? decisive.status : null,
