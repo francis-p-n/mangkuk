@@ -29,6 +29,11 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from sdoc.labels import as_payload      # noqa: E402
+from sdoc.severity import BANDS         # noqa: E402
+
 BATCH = 100          # rows per request; 520 rows in 6 round trips
 
 
@@ -186,8 +191,16 @@ def main() -> int:
 
     try:
         url, key = load_env()
-        post(url, key, "runs", [{"id": run_id, "source": path.name,
-                                 "totals": totals, "is_current": False}])
+        post(url, key, "runs", [{
+            "id": run_id, "source": path.name, "totals": totals,
+            "labels": as_payload(),
+            "bands": [{"name": n, "consequence": c} for n, _, c in BANDS],
+            "severity": {
+                name: sum(r["severity"] == name for r in comparisons)
+                for name, _, _ in BANDS
+            },
+            "is_current": False,
+        }])
         for i in range(0, len(rows), BATCH):
             post(url, key, "results", rows[i:i + BATCH])
             print(f"  sent {min(i + BATCH, len(rows))}/{len(rows)}")

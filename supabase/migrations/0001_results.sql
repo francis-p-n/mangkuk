@@ -57,6 +57,15 @@ create table if not exists public.runs (
     generated_at  timestamptz not null default now(),
     source        text,
     totals        jsonb not null default '{}'::jsonb,
+
+    -- The words the UI puts on screen - field names, status tags, severity
+    -- bands - travel with the run rather than being restated in TypeScript.
+    -- sdoc/labels.py is the only place they are written, so the site cannot
+    -- drift from the pipeline that produced the verdicts.
+    labels        jsonb not null default '{}'::jsonb,
+    bands         jsonb not null default '[]'::jsonb,
+    severity      jsonb not null default '{}'::jsonb,
+
     is_current    boolean not null default false
 );
 
