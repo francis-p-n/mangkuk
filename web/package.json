@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "test": "node --test lib/*.test.ts",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },

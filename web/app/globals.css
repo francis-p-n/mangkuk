@@ -182,7 +182,7 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .row .where { font-size: 13px; color: var(--ink-faint); display: block;
               font-family: var(--mono); letter-spacing: .01em; }
 .row .issue { font-size: 14px; margin-top: 4px; display: block; }
-.row .issue.fix { color: var(--fix); } .row .issue.look { color: var(--look); } .row .issue.fine { color: var(--ink-faint); }
+.row .issue.fix { color: var(--fix); } .row .issue.look { color: var(--look); } .row .issue.fine { color: var(--ink-faint); } .row .issue.idle { color: var(--ink-faint); }
 
 .tag { font-size: 13px; padding: 3px 11px; border-radius: 999px; white-space: nowrap; display: inline-block; }
 .tag.fix { background: var(--fix-wash); color: var(--fix); }
@@ -284,6 +284,9 @@ a:hover { text-decoration-thickness: 2px; }
 .vis-tag.fix { background: var(--fix-wash); color: var(--fix); }
 .vis-tag.look { background: var(--look-wash); color: var(--look); }
 .vis-tag.fine { background: var(--fine-wash); color: var(--fine); }
+/* Mail that was never a document check. Deliberately the quietest thing in
+   the list: it is not a verdict, and it must not read as one. */
+.vis-tag.idle { background: var(--sunk); color: var(--ink-faint); }
 /* The band says how urgent, where the status tag said only what. Both are
    words first: the colour repeats the label, it never carries it alone. */
 .vis-tag.band.critical { background: var(--sev-critical-wash); color: var(--sev-critical); font-weight: 600; }
@@ -678,6 +681,7 @@ tr.bad th[scope="row"] {
 .thread-state.fix { color: var(--fix); }
 .thread-state.look { color: var(--look); }
 .thread-state.fine { color: var(--fine); }
+.thread-state.idle { color: var(--ink-faint); }
 .thread-note {
   margin: 0; padding: 13px 16px; border-top: 1px solid var(--rule);
   color: var(--ink-faint); font-size: 13.5px; line-height: 1.6;

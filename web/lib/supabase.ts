@@ -111,14 +111,21 @@ const COLUMNS =
 // renders. On an unfiltered search that was five hundred rows of it - 1.4MB
 // and four seconds to draw a list of names and ports. The detail panel reads
 // the whole row separately, so nothing on screen loses anything.
+//
+// `category` is the one addition that is not drawn. It is what separates a
+// draft that was checked and matched from an instruction request that was
+// never checked at all - both of which the pipeline stores as `OK`. Without it
+// a list cannot tell the two apart, and 391 emails that nobody compared were
+// being labelled "Everything matches".
 const LIST_COLUMNS =
-  "email_id, status, review_reason, defect_fields, subject, oc_number, " +
-  "booking_ref, severity, shipment";
+  "email_id, category, status, review_reason, defect_fields, subject, " +
+  "oc_number, booking_ref, severity, shipment";
 
 /** A row as a list needs it. The heavy JSONB is deliberately absent. */
 export type ListRow = Pick<
   Result,
   | "email_id"
+  | "category"
   | "status"
   | "review_reason"
   | "defect_fields"
@@ -143,6 +150,16 @@ function worstFirst<T extends { severity: string | null; email_id: string }>(
   });
 }
 
+/**
+ * A verdict belongs to a document check and to nothing else.
+ *
+ * The pipeline gives every email a status, and an email it never compared
+ * keeps the default `OK`. Filtering on status alone therefore returns the 391
+ * instruction requests, invoice questions and berthing reports alongside the
+ * 63 drafts that genuinely matched - under a heading that says "Fine".
+ */
+const COMPARISON = "BL_COMPARISON";
+
 export async function byStatus(
   runId: string,
   status: Result["status"]
@@ -151,6 +168,7 @@ export async function byStatus(
     .from("results")
     .select(LIST_COLUMNS)
     .eq("run_id", runId)
+    .eq("category", COMPARISON)
     .eq("status", status);
   if (error) throw new Error(`reading ${status}: ${error.message}`);
   return worstFirst((data ?? []) as unknown as ListRow[]);
@@ -203,7 +221,11 @@ export async function search(
 ): Promise<ListRow[]> {
   let query = db().from("results").select(LIST_COLUMNS).eq("run_id", runId);
 
-  if (status && status !== "ALL") query = query.eq("status", status);
+  // Same rule as byStatus: asking for "Fine" means asking for drafts that were
+  // checked and matched, not for every email the pipeline left at its default.
+  if (status && status !== "ALL") {
+    query = query.eq("category", COMPARISON).eq("status", status);
+  }
 
   // Postgres does the narrowing, same as the status filter. A country is
   // matched inside the port string rather than against a stored column,

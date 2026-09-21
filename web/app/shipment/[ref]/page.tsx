@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentRun, one, NotConfigured } from "@/lib/supabase";
-import { folderFor, decisiveEmail, referenceOf } from "@/lib/shipments";
+import { folderFor, folderState, referenceOf } from "@/lib/shipments";
 import TopBar from "@/components/TopBar";
 import Detail from "@/components/Detail";
 import Setup from "@/components/Setup";
 import StatusIcon from "@/components/StatusIcon";
 import { who, route } from "@/lib/format";
+import { isComparison } from "@/lib/graph";
 import { Mail } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,9 @@ export default async function ShipmentPage({
     if (!emails.length) notFound();
 
     // The comparison that decides the folder's state is the one shown open.
-    const decisive = decisiveEmail(emails);
+    // A file with no check in it - a booking confirmation and an arrival
+    // notice, say - opens with nothing, and says so.
+    const decisive = folderState(emails)?.decisive ?? null;
     detail = decisive ? await one(run.id, decisive.email_id) : null;
   } catch (e) {
     if (e instanceof NotConfigured) {
@@ -68,9 +71,9 @@ export default async function ShipmentPage({
 
   const labels = run.labels;
   const head = emails[0];
-  const decisive = decisiveEmail(emails);
-  const everFailed = emails.some((e) => e.status === "MISMATCH");
-  const resolved = everFailed && decisive?.status === "OK";
+  const folder = folderState(emails);
+  const decisive = folder?.decisive ?? null;
+  const resolved = folder?.resolved ?? false;
 
   return (
     <>
@@ -109,7 +112,11 @@ export default async function ShipmentPage({
             <ol className="thread">
               {emails.map((e) => {
                 const isOpen = e.email_id === decisive?.email_id;
-                const tone = labels.tone?.[e.status] ?? "fine";
+                // A booking confirmation belongs in the file, but it was
+                // never compared - so it reports what kind of mail it is
+                // rather than a verdict it does not have.
+                const checked = isComparison(e);
+                const tone = checked ? labels.tone?.[e.status] ?? "fine" : "idle";
                 return (
                   <li key={e.email_id}>
                     <div className={`thread-item${isOpen ? " is-open" : ""}`}>
@@ -120,8 +127,13 @@ export default async function ShipmentPage({
                         </span>
                         <span className="thread-from">{e.sender}</span>
                         <span className={`thread-state ${tone}`}>
-                          <StatusIcon status={e.status} size={12} />
-                          {labels.status?.[e.status] ?? e.status}
+                          <StatusIcon
+                            status={checked ? e.status : "UNCHECKED"}
+                            size={12}
+                          />
+                          {checked
+                            ? labels.status?.[e.status] ?? e.status
+                            : labels.category?.[e.category] ?? "No check"}
                           {isOpen && emails.length > 1 && " — shown below"}
                         </span>
                       </div>

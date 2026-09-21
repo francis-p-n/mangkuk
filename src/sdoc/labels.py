@@ -29,6 +29,10 @@ STATUS_LABELS: dict[str, str] = {
     "MISMATCH": "Needs fixing",
     "NEEDS_REVIEW": "Needs you to look",
     "OK": "Fine",
+    # Not one of the organizers' statuses, and never written to a submission.
+    # The pipeline stores OK on every email it was not asked to check, so the
+    # screen needs a word for "no check was run here" that is not "Fine".
+    "UNCHECKED": "No check",
 }
 
 # Short machine-ish tone names, used for colour and CSS classes.
@@ -36,6 +40,7 @@ STATUS_TONES: dict[str, str] = {
     "MISMATCH": "fix",
     "NEEDS_REVIEW": "look",
     "OK": "fine",
+    "UNCHECKED": "idle",
 }
 
 REASON_LABELS: dict[str, str] = {

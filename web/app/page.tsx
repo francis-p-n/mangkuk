@@ -118,7 +118,7 @@ export default async function Today() {
         />
         <button className="btn" type="submit">
           <SearchIcon size={15} strokeWidth={2.25} aria-hidden="true" />
-          Search all <span className="num">{t.comparisons}</span>
+          Search all <span className="num">{t.emails}</span>
         </button>
       </form>
 

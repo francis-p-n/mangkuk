@@ -137,11 +137,15 @@ export default async function Search({
           // The run's own totals, so the control says how much is behind each
           // option before it is clicked. "Fine" counts comparison requests,
           // not every email, which is what the rest of the site means by it.
+          // The three verdicts count document checks, because only a
+          // document check has a verdict. "Everything" counts the mail, which
+          // is what the list under it actually holds - it used to show the
+          // 129 comparisons above a list of all 520 emails.
           const n =
             f.value === "MISMATCH" ? run.totals.mismatch
             : f.value === "NEEDS_REVIEW" ? run.totals.review
             : f.value === "OK" ? run.totals.ok
-            : run.totals.comparisons;
+            : run.totals.emails;
           return (
             <Link
               key={f.value}
@@ -183,16 +187,17 @@ export default async function Search({
               </li>
             ) : (
               shipments.map((sp) => {
-                // The newest email carries the name and route to show; the
-                // folder carries the state.
-                const head = sp.emails[sp.emails.length - 1];
+                // The deciding check carries the name, the route and the
+                // state. Only a file with no check in it at all falls back to
+                // its newest email, which is then all there is to show.
+                const face = sp.decisive ?? sp.emails[sp.emails.length - 1];
                 return (
                   <li key={sp.key}>
                     <ShipmentRow
-                      s={head}
+                      s={face}
                       labels={labels}
                       href={`/shipment/${encodeURIComponent(sp.key)}`}
-                      current={selected?.email_id === head.email_id}
+                      current={selected?.email_id === face.email_id}
                       count={sp.emails.length}
                       resolved={sp.resolved}
                     />

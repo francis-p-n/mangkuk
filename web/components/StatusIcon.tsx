@@ -1,4 +1,4 @@
-import { Check, Eye, TriangleAlert } from "lucide-react";
+import { Check, Eye, Mail, TriangleAlert } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 
 /**
@@ -15,11 +15,17 @@ import type { LucideProps } from "lucide-react";
  * Always aria-hidden. Every place this is used already has the words next to
  * it, and a screen reader announcing "triangle alert needs fixing" is worse
  * than one announcing "needs fixing".
+ *
+ * UNCHECKED is not a verdict and deliberately does not look like one. It marks
+ * mail that was never a document check - an instruction request, an invoice
+ * question - which the pipeline stores as `OK` because nothing was asked of
+ * it. Wearing a tick there claims a comparison that never happened.
  */
 const ICONS = {
   MISMATCH: TriangleAlert,
   NEEDS_REVIEW: Eye,
   OK: Check,
+  UNCHECKED: Mail,
 } as const;
 
 export type Status = keyof typeof ICONS;
