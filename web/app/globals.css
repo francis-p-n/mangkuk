@@ -130,18 +130,6 @@ h1 { font-family: var(--ui-display); font-size: 25px; font-weight: 600; margin: 
 .date { color: var(--ink-faint); font-size: 15px; margin: 2px 0 20px; }
 .titlerow { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .titlerow .plain { margin-left: auto; }
-
-.intro {
-  background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--brand);
-  border-radius: var(--r-lg); padding: 22px 26px 24px; margin: 0 0 26px; max-width: 58em;
-}
-.intro h2 { font-family: var(--ui-display); font-size: 18px; font-weight: 600; margin: 0 0 10px; }
-.intro p { margin: 0 0 12px; max-width: 48em; }
-.intro ul { list-style: none; padding: 0; margin: 0 0 14px; }
-.intro li { position: relative; padding-left: 21px; margin-bottom: 9px; max-width: 48em; }
-.intro li .dot { position: absolute; left: 0; top: .62em; }
-.intro li b { white-space: nowrap; }
-.intro .mind { color: var(--ink-soft); }
 .btn.plain { background: transparent; }
 .headline { font-size: 17px; line-height: 1.6; margin: 0 0 14px; max-width: 46em; }
 .headline b { font-weight: 600; }
@@ -153,8 +141,6 @@ h1 { font-family: var(--ui-display); font-size: 25px; font-weight: 600; margin: 
 
 .tools { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 26px 0 16px; }
 .tools.narrow { margin: 0 0 18px; gap: 12px; align-items: flex-end; }
-.picker { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--ink-faint); }
-.picker select { min-width: 190px; max-width: 260px; }
 #clearf { align-self: flex-end; }
 input[type=search], select {
   font: inherit; font-size: 15px; padding: 9px 13px; color: var(--ink);
@@ -170,7 +156,6 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .pill:hover { background: var(--sunk); }
 .pill[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .pill .n { opacity: .7; font-size: 13px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .dot.fix { background: var(--fix); } .dot.look { background: var(--look); } .dot.fine { background: var(--fine); }
 .pill[aria-pressed="true"] .dot { box-shadow: 0 0 0 1.5px var(--paper); }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
@@ -206,35 +191,15 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 
 .band-why {
   display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline;
-  margin: -6px 0 16px; padding: 11px 15px; border-radius: var(--r);
+  margin: -6px 0 18px; padding: 14px 18px; border-radius: var(--r);
   font-size: 14.5px; border-left: 3px solid currentColor;
+  line-height: 1.55;
 }
 .band-why span { color: var(--ink-soft); }
 .band-why.critical { background: var(--sev-critical-wash); color: var(--sev-critical); }
 .band-why.serious  { background: var(--sev-serious-wash);  color: var(--sev-serious); }
 .band-why.routine  { background: var(--sev-routine-wash);  color: var(--sev-routine); }
-
-/* The control that lets a reader disagree with a verdict. Deliberately a
-   link, not a button: it records an opinion, it does not perform an action. */
-.linkish {
-  background: none; border: 0; padding: 0; font: inherit; font-size: 13px;
-  color: var(--brand); text-decoration: underline; text-underline-offset: 2px;
-  cursor: pointer;
-}
-.linkish:hover { text-decoration-thickness: 2px; }
 .verdict-cell .linkish, .taught { display: block; margin-top: 5px; }
-.taught { font-size: 12.5px; color: var(--ink-soft); }
-.taught .linkish { display: inline; margin: 0 0 0 7px; }
-tr.told td, tr.told th { background: var(--brand-wash); }
-.taught-note {
-  margin: 12px 0 0; padding: 11px 15px; font-size: 14px;
-  background: var(--brand-wash); border-radius: var(--r); color: var(--ink-soft);
-}
-.pipcount {
-  display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px;
-  border-radius: 999px; background: var(--brand); color: #fff;
-  font-size: 11.5px; font-variant-numeric: tabular-nums; text-align: center;
-}
 
 .detail { padding: 26px 30px 28px; }
 .detail h2 { font-family: var(--ui-display); font-size: 21px; font-weight: 600; margin: 0 0 3px; letter-spacing: 0; }
@@ -245,13 +210,13 @@ tr.told td, tr.told th { background: var(--brand-wash); }
 
 h3 { font-size: 14px; font-weight: 600; margin: 24px 0 9px; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
-th { text-align: left; font-weight: 500; font-size: 14px; color: var(--ink-faint); padding: 0 12px 8px; }
-td { padding: 11px 12px; vertical-align: top; border-top: 1px solid var(--rule); }
+th { text-align: left; font-weight: 500; font-size: 14px; color: var(--ink-faint); padding: 0 16px 8px; }
+td { padding: 13px 16px; vertical-align: top; border-top: 1px solid var(--rule); }
 td:first-child { color: var(--ink-soft); width: 11em; }
 tr.bad td { background: var(--fix-wash); border-top-color: var(--fix-rule); color: var(--fix); }
 tr.bad td:first-child { border-left: 1px solid var(--fix-rule); border-radius: var(--r) 0 0 var(--r); color: var(--fix); font-weight: 600; }
 tr.bad td:last-child { border-right: 1px solid var(--fix-rule); border-radius: 0 var(--r) var(--r) 0; }
-.src { font-size: 13.5px; color: var(--ink-faint); display: block; }
+.src { font-size: 13.5px; color: var(--ink-faint); display: block; margin-top: 3px; }
 tr.bad .src { color: var(--fix); opacity: .8; }
 .yes { color: var(--fine); } .dash { color: var(--ink-faint); }
 .todo { margin: 8px 0 0; font-size: 15px; color: var(--fix); }
@@ -295,13 +260,8 @@ details[open] summary::before { transform: rotate(90deg); }
   .titlerow .plain { margin-left: 0; }
   .intro { padding: 18px 18px 20px; }
 }
-
-/* Signed-in strip in the page header. */
-.whoami { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.whoami #signedin { font-size: 14px; color: var(--ink-faint); margin-right: 4px; }
 .whoami .btn { font-size: 14px; padding: 6px 12px; text-decoration: none; display: inline-block; }
 @media (max-width: 640px) { .whoami { margin-left: 0; width: 100%; } }
-
 
 /* ---- accessibility and the split into Today / Search -------------------- */
 
@@ -315,8 +275,6 @@ details[open] summary::before { transform: rotate(90deg); }
 
 a { color: var(--brand); }
 a:hover { text-decoration-thickness: 2px; }
-.whoami .is-here { color: var(--ink); border-color: var(--rule-firm); background: var(--sunk); }
-.whoami .signedin { font-size: 14px; color: var(--ink-faint); margin-right: 4px; }
 
 /* Status is never colour alone: every row carries the words as well. */
 .vis-tag {
@@ -336,16 +294,12 @@ a:hover { text-decoration-thickness: 2px; }
 /* Rows are links on Today and buttons on Search; both must look identical. */
 a.row { text-decoration: none; color: inherit; }
 a.row:hover { background: var(--sunk); }
-
-.pills { border: 0; padding: 0; margin: 0; display: flex; gap: 9px; flex-wrap: wrap; }
 /* The filter form stacks: a search box, then two rows of controls. The base
    rule lets the search input grow, which in a column turns it into a tall
    block, so its growth is switched off here. */
 form.tools { flex-direction: column; align-items: stretch; gap: 12px; }
 form.tools > input[type=search] { flex: 0 0 auto; width: 100%; max-width: 520px; }
 fieldset.tools { border: 0; padding: 0; margin: 0; flex-direction: row; width: 100%; }
-.picker select { min-width: 0; width: 100%; }
-.picker { flex: 1 1 190px; min-width: 0; max-width: 260px; }
 
 /* The result of each comparison in words, not only a tick. */
 .verdict-cell { white-space: nowrap; font-size: 13.5px; }
@@ -356,7 +310,7 @@ table th[scope="row"] { text-align: left; font-weight: 400; color: var(--ink-sof
 tr.bad th[scope="row"] {
   background: var(--fix-wash); border-top: 1px solid var(--fix-rule);
   border-left: 1px solid var(--fix-rule); border-radius: var(--r) 0 0 var(--r);
-  color: var(--fix); font-weight: 600; padding: 11px 12px; vertical-align: top;
+  color: var(--fix); font-weight: 600; padding: 13px 16px; vertical-align: top;
 }
 
 @media (prefers-reduced-motion: reduce) {
