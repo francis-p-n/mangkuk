@@ -63,6 +63,35 @@ def load_env() -> tuple[str, str]:
     return url, key
 
 
+# PostgREST's code for "you sent a column this table has not got". The
+# schema is versioned in supabase/migrations/ and applied by hand in the SQL
+# editor, so code reaches a project before a migration does - and a nightly
+# reload should not fail because one nice-to-have column is not there yet.
+UNKNOWN_COLUMN = "PGRST204"
+
+# Columns the site can do without. `body` arrived in migration 0002 and only
+# feeds the "read the original email" panel; web/lib/supabase.ts already
+# drops it on the same error when reading.
+OPTIONAL_COLUMNS = ("body",)
+
+
+class MissingColumn(LoadError):
+    """The table is older than this code. Which column, so it can be dropped."""
+
+    def __init__(self, column: str, detail: str):
+        super().__init__(detail)
+        self.column = column
+
+
+def missing_column(detail: str) -> str | None:
+    if UNKNOWN_COLUMN not in detail:
+        return None
+    for column in OPTIONAL_COLUMNS:
+        if f"'{column}' column" in detail:
+            return column
+    return None
+
+
 def post(url: str, key: str, path: str, rows: list[dict], *,
          prefer: str = "return=minimal") -> None:
     body = json.dumps(rows).encode("utf-8")
@@ -82,9 +111,35 @@ def post(url: str, key: str, path: str, rows: list[dict], *,
             return
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")[:400]
+        column = missing_column(detail)
+        if column:
+            raise MissingColumn(column, f"{path}: HTTP {exc.code} - {detail}")
         raise LoadError(f"{path}: HTTP {exc.code} - {detail}") from exc
     except urllib.error.URLError as exc:
         raise LoadError(f"{path}: cannot reach {url} - {exc.reason}") from exc
+
+
+def patch(url: str, key: str, query: str, fields: dict) -> None:
+    """PATCH rows matching a PostgREST filter. Errors read like post()'s."""
+    req = urllib.request.Request(
+        f"{url}/rest/v1/{query}",
+        data=json.dumps(fields).encode("utf-8"),
+        method="PATCH",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60):
+            return
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:400]
+        raise LoadError(f"{query}: HTTP {exc.code} - {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise LoadError(f"{query}: cannot reach {url} - {exc.reason}") from exc
 
 
 def row_of(rec: dict, run_id: str) -> dict:
@@ -208,22 +263,49 @@ def main() -> int:
             },
             "is_current": False,
         }])
-        for i in range(0, len(rows), BATCH):
-            post(url, key, "results", rows[i:i + BATCH])
-            print(f"  sent {min(i + BATCH, len(rows))}/{len(rows)}")
+        # Retry without a column the table has not got, rather than failing
+        # the whole load. Said out loud: a run missing the email text is
+        # worth having, and silently publishing one is not.
+        dropped: list[str] = []
+        i = 0
+        while i < len(rows):
+            batch = rows[i:i + BATCH]
+            try:
+                # Upsert, because `results` keys on email_id alone: the table
+                # holds one run's worth of rows at a time by design, so a
+                # second load collides with the first on every row. Merging
+                # duplicates makes a reload idempotent - each email keeps one
+                # row, carrying the newest run's verdict and run_id - which is
+                # what a demo that gets reloaded all week needs.
+                post(url, key, "results", batch,
+                     prefer="return=minimal,resolution=merge-duplicates")
+            except MissingColumn as exc:
+                print(f"  this project has no '{exc.column}' column - "
+                      f"apply supabase/migrations/ to get it")
+                print(f"  loading without it; the site reads round a missing "
+                      f"'{exc.column}' already")
+                dropped.append(exc.column)
+                for row in rows:
+                    row.pop(exc.column, None)
+                continue          # same batch, one column lighter
+            i += BATCH
+            print(f"  sent {min(i, len(rows))}/{len(rows)}")
+
+        if dropped:
+            print(f"  note: loaded without {', '.join(dropped)}")
 
         # Flip last: until this, the site still serves the previous run, and
         # a load that dies halfway leaves nothing half-shown.
-        req = urllib.request.Request(
-            f"{url}/rest/v1/runs?id=eq.{run_id}",
-            data=json.dumps({"is_current": True}).encode(),
-            method="PATCH",
-            headers={"apikey": key, "Authorization": f"Bearer {key}",
-                     "Content-Type": "application/json",
-                     "Prefer": "return=minimal"},
-        )
-        with urllib.request.urlopen(req, timeout=60):
-            pass
+        #
+        # Two steps, because `runs_one_current` is a unique index on
+        # is_current where it is true - exactly one run may be current, so
+        # the old one has to stand down before the new one can stand up.
+        # Setting the new one first is a 409, which is what this did until a
+        # project was loaded twice. Between the two there is a moment with no
+        # current run, and the site shows its "nothing loaded yet" page for
+        # that moment rather than a wrong verdict.
+        patch(url, key, "runs?is_current=eq.true", {"is_current": False})
+        patch(url, key, f"runs?id=eq.{run_id}", {"is_current": True})
     except LoadError as exc:
         print(f"\n{exc}")
         return 70
