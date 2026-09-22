@@ -148,8 +148,16 @@ export type Named = {
   shipment: Shipment;
 };
 
+// A shipment with no readable consignee is named by its email instead, and
+// a reply marker is not part of that name: "RE · AFRT - LONG BEACH · US…"
+// spends its first characters saying nothing and pushes the useful part off
+// the end of the line.
+const REPLY_MARKER = /^\s*(?:(?:re|fw|fwd)(?![a-z0-9])[\s_:.·-]*)+/i;
+
 export const who = (s: Named): string =>
-  title(s.shipment?.consignee) || clip(s.subject, 52) || s.email_id;
+  title(s.shipment?.consignee) ||
+  clip(String(s.subject ?? "").replace(REPLY_MARKER, ""), 52) ||
+  s.email_id;
 
 export function route(sh: Shipment | null | undefined, joiner = " to "): string {
   if (!sh) return "";

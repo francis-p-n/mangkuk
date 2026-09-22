@@ -168,9 +168,15 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .list { max-height: 72vh; overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-lg); }
 .listtop { padding: 13px 17px 11px; border-bottom: 1px solid var(--rule); color: var(--ink-faint); font-size: 14px; }
 
+/* A row is a link when choosing it leaves the page and a button when the
+   shipment opens beside it, so the reset has to cover both. `color: inherit`
+   used to be on `a.row` alone: the moment rows became buttons on the search
+   page, every shipment name rendered in the browser's own button colour -
+   near-black on the dark theme, against a near-black card. */
 .row {
   display: block; width: 100%; text-align: left; font: inherit; cursor: pointer;
-  background: none; border: 0; border-bottom: 1px solid var(--rule);
+  color: inherit; background: none; border: 0;
+  border-bottom: 1px solid var(--rule);
   border-left: 4px solid transparent; padding: 13px 16px;
 }
 .row:last-child { border-bottom: 0; }
@@ -178,7 +184,7 @@ input[type=search] { min-width: 260px; flex: 1 1 260px; }
 .row.s-fix { border-left-color: var(--fix-rule); }
 .row.s-look { border-left-color: var(--look-rule); }
 .row[aria-current="true"] { background: var(--brand-wash); border-left-color: var(--brand); }
-.row .who { font-weight: 600; font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .who { font-weight: 600; font-size: 15px; color: var(--ink); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .where { font-size: 13px; color: var(--ink-faint); display: block;
               font-family: var(--mono); letter-spacing: .01em; }
 .row .issue { font-size: 14px; margin-top: 4px; display: block; }
