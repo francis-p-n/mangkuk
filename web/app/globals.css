@@ -244,6 +244,11 @@ details[open] summary::before { transform: rotate(90deg); }
 .btn { font: inherit; font-size: 15px; padding: 9px 17px; cursor: pointer;
        background: var(--card); color: var(--ink); border: 1px solid var(--rule-firm); border-radius: var(--r); }
 .btn:hover { background: var(--sunk); }
+/* A .btn is sometimes a link - "Back to Today", "Search every
+   shipment" - and a link that looks like a button should not also be
+   underlined like a sentence. */
+a.btn { text-decoration: none; display: inline-flex; align-items: center;
+        gap: 7px; }
 .btn.go { background: var(--brand); color: #fff; border-color: var(--brand); }
 .btn.go:hover { filter: brightness(1.07); }
 .email { margin-top: 14px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--card); }
