@@ -19,6 +19,12 @@ SPAM_PHRASES = (
     "congratulations", "limited time offer", "weird trick", "you have won",
     "claim your", "unpaid customs fee", "verify your account", "act now",
     "exceeded its storage limit", "monthly draw",
+    # The advance-fee scam. Seven messages here open "Hello Dear, I am a bank
+    # officer with an urgent business proposal" and no phrase above touched
+    # them, so the sender list was the only thing catching them -
+    # eval/classifier_mutation.py is where that showed up. Neither phrase can
+    # appear in shipping mail.
+    "bank officer", "urgent business proposal",
 )
 
 COMPARISON_PHRASES = (
@@ -139,7 +145,13 @@ def classify(
 
     if sender_domain in SPAM_DOMAINS:
         return Classification("SPAM", "spam_domain", 0.99)
-    if any(p in text for p in SPAM_PHRASES):
+    # Subject as well as body here, which is the exception to the rule below
+    # that the body decides, and for the same reason: some of this mail is a
+    # subject line and very little else. Spam is also the one category where
+    # a false negative is cheap and a miss is not, so two legs are better
+    # than one - eval/classifier_mutation.py showed the sender list carrying
+    # all forty of these on its own.
+    if any(p in text or p in subj for p in SPAM_PHRASES):
         return Classification("SPAM", "spam_phrase", 0.95)
 
     # Documents in hand beats every other signal: there is something to check.

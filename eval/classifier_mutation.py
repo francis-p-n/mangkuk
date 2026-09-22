@@ -129,6 +129,11 @@ MUTANTS: list[Mutant] = [
         {"SPAM_PHRASES": ()},
     ),
     Mutant(
+        "spam detection deleted",
+        "both legs at once - neither list alone is load-bearing any more",
+        {"SPAM_DOMAINS": set(), "SPAM_PHRASES": ()},
+    ),
+    Mutant(
         "comparison phrases deleted",
         "only an attachment can make a comparison request now",
         {"COMPARISON_PHRASES": ()},
@@ -314,11 +319,13 @@ def main() -> int:
     print()
 
     if equivalent:
-        print("  The five that changed nothing are worth reading rather than")
-        print("  dismissing: each one is a rule that cannot matter because")
-        print("  something earlier already decided. Spam, for instance, is")
-        print("  caught entirely by the sender list - deleting every spam")
-        print("  phrase changes no answer in this corpus.")
+        print(f"  The {len(equivalent)} that changed nothing are worth reading")
+        print("  rather than dismissing. Each is a rule that cannot matter on")
+        print("  this corpus, either because something earlier already decided")
+        print("  or because a second rule catches the same mail. Spam is the")
+        print("  second kind: deleting the sender list changes no verdict, and")
+        print("  neither does deleting every spam phrase - but deleting both")
+        print("  loses forty emails, which is why that is a mutant of its own.")
         print()
 
     print(f"SUMMARY mutants={len(rows)} live={len(live)} "

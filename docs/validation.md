@@ -329,18 +329,26 @@ ability to fail. `eval/classifier_mutation.py` applies fourteen realistic
 regressions to the live rules and asks, of each, whether the checks go red.
 
 ```
-mutants                : 14
-changed an answer      : 9  (5 changed none, so there was nothing to catch)
+mutants                : 15
+changed an answer      : 9  (6 changed none, so there was nothing to catch)
 killed                 : 9/9
 the old residue check  : 7/9
 ```
 
-Five mutants are *equivalent*: they rewrite a rule that cannot matter because
-something earlier already decided. Deleting every spam phrase changes no
-answer in this corpus, because spam is caught entirely by the sender domain
-list — worth knowing on its own, since it means one list is doing all of that
-work. Counting those as survivors would understate the harness and counting
-them as kills would flatter it, so they are reported apart from both.
+Six mutants are *equivalent*: they rewrite a rule that cannot matter, either
+because something earlier already decided or because a second rule catches
+the same mail. Counting those as survivors would understate the harness and
+counting them as kills would flatter it, so they are reported apart from
+both.
+
+One of them was a finding rather than a curiosity. Deleting every spam phrase
+changed no verdict, because all forty spam messages were being caught by the
+sender domain list alone — seven of them open *"Hello Dear, I am a bank
+officer with an urgent business proposal"* and not one phrase in the list
+touched that. A domain list is the part of a spam filter that goes stale
+first. The phrases now cover the advance-fee wording and are matched against
+the subject as well as the body, so deleting either list changes no verdict
+and deleting both loses forty emails — which is a mutant of its own.
 
 The old residue check kills 7 of the 9. The two it misses are the two that
 matter most: both make the rules decide *more*, and wrongly, which the residue
