@@ -12,7 +12,7 @@
 > of lading compared against the instruction that ordered it, and what is wrong
 > ranked by what it would cost.
 
-### 🌐 [Live site](https://mangkuk-livid.vercel.app) &nbsp;·&nbsp; 🎬 [Video](#) &nbsp;·&nbsp; 📊 [Slide deck](#)
+### 🌐 [Live site](https://mangkuk-livid.vercel.app) &nbsp;·&nbsp; 🎬 [Video](https://drive.google.com/file/d/1KPEJLe4izeZv1idE01EqwY8gkZBkmyYD/view?usp=sharing) &nbsp;·&nbsp; 📊 [Slide deck](#)
 
 ## 👥 Team
 
